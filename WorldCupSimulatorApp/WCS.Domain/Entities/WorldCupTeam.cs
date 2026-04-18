@@ -14,5 +14,8 @@ namespace WCS.Domain.Entities
         public int TeamId { get; set; }
 
         public NationalTeam Team { get; set; } = null!;
+
+        public List<WorldCupMatch> TeamAMatches { get; set; } = [];
+        public List<WorldCupMatch> TeamBMatches { get; set; } = [];
     }
 }

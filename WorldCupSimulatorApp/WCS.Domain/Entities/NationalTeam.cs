@@ -22,5 +22,7 @@ namespace WCS.Domain.Entities
 
         public List<HistoricalMatch> TeamAMatches { get; set; } = [];
         public List<HistoricalMatch> TeamBMatches { get; set; } = [];
+
+        public WorldCupTeam? WorldCupTeam { get; set; }
     }
 }
