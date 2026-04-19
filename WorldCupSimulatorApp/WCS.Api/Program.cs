@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WCS.Domain.Entities;
 using WCS.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +12,9 @@ builder.Services.AddDbContext<EFCoreDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration["ConnectionString:EFCoreDBConnection"]);
 });
+
+builder.Services.Configure<RatingWeightsOptions>(
+    builder.Configuration.GetSection("RatingWeights"));
 
 var app = builder.Build();
 
