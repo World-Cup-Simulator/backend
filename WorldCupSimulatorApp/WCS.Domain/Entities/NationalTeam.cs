@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using WCS.Domain.Enums;
 
 namespace WCS.Domain.Entities
@@ -16,7 +17,6 @@ namespace WCS.Domain.Entities
         public int CurrentFifaRank { get; set; }
         public double AttackRating { get; set; }
         public double DefenseRating { get; set; }
-        public double OverallRating { get; set; }
         public double AvgGoalsScored { get; set; }
         public double AvgGoalsConceded { get; set; }
 
@@ -24,5 +24,8 @@ namespace WCS.Domain.Entities
         public List<HistoricalMatch> TeamBMatches { get; set; } = [];
 
         public WorldCupTeam? WorldCupTeam { get; set; }
+
+        [NotMapped]
+        public double OverallRating => AttackRating * 0.55 + DefenseRating * 0.45;
     }
 }

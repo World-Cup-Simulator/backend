@@ -1,19 +1,11 @@
-﻿using Microsoft.Extensions.Options;
-using WCS.Application.DTO.RatingsDTO;
+﻿using WCS.Application.DTO.RatingsDTO;
 using WCS.Domain.Entities;
 
 namespace WCS.Application.Services.Ratings
 {
     public class DefenseRatingCalculator
     {
-        private readonly RatingWeightsOptions _RatingWeights;
-
-        public DefenseRatingCalculator(IOptions<RatingWeightsOptions> options)
-        {
-            _RatingWeights = options.Value;
-        }
-
-        public double Calculate(List<RatingDataDTO> data)
+        public double Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights)
         {
             if (data == null || data.Count == 0) return 0;
 
@@ -24,29 +16,33 @@ namespace WCS.Application.Services.Ratings
 
             foreach (var match in data)
             {
-                double penalty = 0;
                 double recencyWeight = helper.GetRecencyWeight(match.Date);
                 double rivalWeight = helper.GetRankingWeight(match.OpponentFifaRank);
 
+                // Prevent division by zero and extreme values from weak opponents.
                 var attack = Math.Max(0.25, match.OpponentAttackRating);
 
-                if (!_RatingWeights.Competition.TryGetValue(
+                if (!weights.Competition.TryGetValue(
                     match.Competition.ToString(),
                     out var competitionWeight))
                 {
                     competitionWeight = 0.85;
                 }
 
-                if (!_RatingWeights.Stage.TryGetValue(
+                if (!weights.Stage.TryGetValue(
                     match.Stage.ToString(),
                     out var stageWeight))
                 {
                     stageWeight = 1;
                 }
 
+                // Combined importance of the match.
                 double totalWeight = recencyWeight * rivalWeight * competitionWeight * stageWeight;
 
-                penalty = match.GoalsConceded * totalWeight / attack;
+                // Defensive penalty:
+                // conceding goals against weak attacks penalizes more,
+                // conceding against strong attacks penalizes less.
+                double penalty = match.GoalsConceded * totalWeight / attack;
 
                 sumPenalties += penalty;
                 count++;
@@ -54,7 +50,10 @@ namespace WCS.Application.Services.Ratings
 
             double avgPenalty = sumPenalties/count;
 
-            return 2.5 / (1 + avgPenalty);
+            // Converts penalties into defensive rating.
+            // 2.5 is the current max baseline and can be adjusted later.
+            const double MaxDefenseRating = 2.5;
+            return MaxDefenseRating / (1 + avgPenalty);
         }
     }
 }

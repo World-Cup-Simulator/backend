@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WCS.Application.Services.Ratings;
 using WCS.Domain.Entities;
 using WCS.Infrastructure.Persistence;
 
@@ -15,6 +16,8 @@ builder.Services.AddDbContext<EFCoreDbContext>(options =>
 
 builder.Services.Configure<RatingWeightsOptions>(
     builder.Configuration.GetSection("RatingWeights"));
+
+builder.Services.AddScoped<IRatingService, RatingService>();
 
 var app = builder.Build();
 

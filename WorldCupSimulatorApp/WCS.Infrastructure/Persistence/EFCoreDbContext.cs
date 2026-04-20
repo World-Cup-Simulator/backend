@@ -47,9 +47,6 @@ namespace WCS.Infrastructure.Persistence
                 entity.Property(x => x.DefenseRating)
                     .HasPrecision(5, 2);
 
-                entity.Property(x => x.OverallRating)
-                    .HasPrecision(5, 2);
-
                 entity.Property(x => x.AvgGoalsScored)
                     .HasPrecision(5, 2);
 
@@ -79,10 +76,6 @@ namespace WCS.Infrastructure.Persistence
                     t.HasCheckConstraint(
                         "CK_NationalTeam_DefenseRating",
                         "\"DefenseRating\" >= 0");
-
-                    t.HasCheckConstraint(
-                        "CK_NationalTeam_OverallRating",
-                        "\"OverallRating\" >= 0");
 
                     t.HasCheckConstraint(
                         "CK_NationalTeam_AvgGoalsScored",
