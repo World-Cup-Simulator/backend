@@ -5,7 +5,7 @@ namespace WCS.Application.Services.Ratings
 {
     public class DefenseRatingCalculator
     {
-        public double Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights)
+        public static double Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights)
         {
             if (data == null || data.Count == 0) return 0;
 

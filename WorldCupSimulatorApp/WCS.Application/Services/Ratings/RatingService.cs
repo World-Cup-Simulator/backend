@@ -10,14 +10,12 @@ namespace WCS.Application.Services.Ratings
 
         public double CalculateAttack (List<RatingDataDTO> data)
         {
-            var calculator = new AttackRatingCalculator();
-            return calculator.Calculate(data, _RatingWeights);
+            return AttackRatingCalculator.Calculate(data, _RatingWeights);
         }
 
         public double CalculateDefense(List<RatingDataDTO> data)
         {
-            var calculator = new DefenseRatingCalculator();
-            return calculator.Calculate(data, _RatingWeights);
+            return DefenseRatingCalculator.Calculate(data, _RatingWeights);
         }
     }
 }

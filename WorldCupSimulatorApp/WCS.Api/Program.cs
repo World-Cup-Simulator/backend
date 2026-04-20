@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WCS.Application.Services.Probabilities;
 using WCS.Application.Services.Ratings;
 using WCS.Domain.Entities;
 using WCS.Infrastructure.Persistence;
@@ -18,6 +19,7 @@ builder.Services.Configure<RatingWeightsOptions>(
     builder.Configuration.GetSection("RatingWeights"));
 
 builder.Services.AddScoped<IRatingService, RatingService>();
+builder.Services.AddScoped<IMatchProbabilityService, MatchProbabilityService>();
 
 var app = builder.Build();
 
