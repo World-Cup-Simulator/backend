@@ -47,10 +47,16 @@ namespace WCS.Infrastructure.Persistence
                 entity.Property(x => x.DefenseRating)
                     .HasPrecision(5, 2);
 
-                entity.Property(x => x.AvgGoalsScored)
+                entity.Property(x => x.AccumulatedScores)
                     .HasPrecision(5, 2);
 
-                entity.Property(x => x.AvgGoalsConceded)
+                entity.Property(x => x.AccumulatedWeights)
+                    .HasPrecision(5, 2);
+
+                entity.Property(x => x.AccumulatedPenalties)
+                    .HasPrecision(5, 2);
+
+                entity.Property(x => x.AccumulatedCount)
                     .HasPrecision(5, 2);
 
                 entity.HasMany(t => t.TeamAMatches)
@@ -78,12 +84,20 @@ namespace WCS.Infrastructure.Persistence
                         "\"DefenseRating\" >= 0");
 
                     t.HasCheckConstraint(
-                        "CK_NationalTeam_AvgGoalsScored",
-                        "\"AvgGoalsScored\" >= 0");
+                        "CK_NationalTeam_AccumulatedScores",
+                        "\"AccumulatedScores\" >= 0");
 
                     t.HasCheckConstraint(
-                        "CK_NationalTeam_AvgGoalsConceded",
-                        "\"AvgGoalsConceded\" >= 0");
+                        "CK_NationalTeam_AccumulatedWeights",
+                        "\"AccumulatedWeights\" >= 0");
+
+                    t.HasCheckConstraint(
+                        "CK_NationalTeam_AccumulatedPenalties",
+                        "\"AccumulatedPenalties\" >= 0");
+
+                    t.HasCheckConstraint(
+                        "CK_NationalTeam_AccumulatedCount",
+                        "\"AccumulatedCount\" >= 0");
 
                     t.HasCheckConstraint(
                         "CK_NationalTeam_Code_Length",

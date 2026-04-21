@@ -8,14 +8,24 @@ namespace WCS.Application.Services.Ratings
     {
         private readonly RatingWeightsOptions _RatingWeights = options.Value;
 
-        public double CalculateAttack (List<RatingDataDTO> data)
+        public AttackRatingDTO CalculateHistoricalAttack (List<RatingDataDTO> data)
         {
-            return AttackRatingCalculator.Calculate(data, _RatingWeights);
+            return AttackRatingCalculator.CalculateHistorical(data, _RatingWeights);
         }
 
-        public double CalculateDefense(List<RatingDataDTO> data)
+        public double CalculateAttack(List<RatingDataDTO> data, double accumulatedScores, double accumulatedWeights)
         {
-            return DefenseRatingCalculator.Calculate(data, _RatingWeights);
+            return AttackRatingCalculator.Calculate(data, _RatingWeights, accumulatedScores, accumulatedWeights);
+        }
+
+        public DefenseRatingDTO CalculateHistoricalDefense(List<RatingDataDTO> data)
+        {
+            return DefenseRatingCalculator.CalculateHistorical(data, _RatingWeights);
+        }
+
+        public double CalculateDefense(List<RatingDataDTO> data, double accumulatedPenalties, int accumulatedCount)
+        {
+            return DefenseRatingCalculator.Calculate(data, _RatingWeights, accumulatedPenalties, accumulatedCount);
         }
     }
 }
