@@ -63,10 +63,10 @@ namespace WCS.Application.Services.Ratings
             };
         }
 
-        public static double Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights, double accumulatedPenalties,
+        public static DefenseRatingDTO Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights, double accumulatedPenalties,
             int accumulatedCount)
         {
-            if (data == null || data.Count == 0) return 0;
+            if (data == null || data.Count == 0) return new DefenseRatingDTO();
 
             var helper = new RatingHelper();
 
@@ -112,7 +112,14 @@ namespace WCS.Application.Services.Ratings
             // Converts penalties into defensive rating.
             // 2.5 is the current max baseline and can be adjusted later.
             const double MaxDefenseRating = 2.5;
-            return MaxDefenseRating / (1 + avgPenalty);
+            var defenseRating = MaxDefenseRating / (1 + avgPenalty);
+
+            return new DefenseRatingDTO
+            {
+                DefenseRating = defenseRating,
+                AccumulatedPenalties = sumPenalties,
+                AccumulatedCount = count
+            };
         }
     }
 }

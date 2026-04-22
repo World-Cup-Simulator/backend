@@ -1,5 +1,6 @@
 ﻿using WCS.Application.DTO.ProbabilitiesDTO;
 using WCS.Application.Services.Common;
+using WCS.Domain.Enums;
 
 namespace WCS.Application.Services.Probabilities
 {
@@ -58,12 +59,15 @@ namespace WCS.Application.Services.Probabilities
             return scores;
         }
 
-        public List<ScoreProbabilityDTO> CalculateMatchProbabilities (int maxGoals, double lambdaA, double lambdaB)
+        public MatchProbabilityDTO CalculateMatchProbabilities (int maxGoals, double lambdaA, double lambdaB)
         {
             if (maxGoals < 0)
                 throw new ArgumentException("maxGoals cannot be negative.");
 
             var scores = GenerateTable(maxGoals);
+            double winA = 0;
+            double draw = 0;
+            double winB = 0;
 
             foreach (var score in scores)
             {
@@ -76,9 +80,62 @@ namespace WCS.Application.Services.Probabilities
             foreach (var score in scores)
             {
                 score.Probability /= totalProbability;
+                if (score.GoalsA > score.GoalsB)
+                {
+                    winA += score.Probability;
+                }
+                else if (score.GoalsA < score.GoalsB)
+                {
+                    winB += score.Probability;
+                }
+                else
+                {
+                    draw += score.Probability;
+                }
             }
 
-            return scores;
+            return new MatchProbabilityDTO
+            {
+                Scores = scores,
+                WinA = winA,
+                Draw = draw,
+                WinB = winB
+            };
+        }
+
+        public ScoreProbabilityDTO PickRandomScore(List<ScoreProbabilityDTO> scores)
+        {
+            if (scores == null || scores.Count == 0)
+                throw new ArgumentException("Scores list is empty.");
+
+            double roll = Random.Shared.NextDouble();
+            double cumulative = 0;
+
+            foreach (var score in scores)
+            {
+                cumulative += score.Probability;
+
+                if (roll <= cumulative)
+                    return score;
+            }
+
+            return scores[^1];
+        }
+
+        public MatchOutcome PickRandomOutcome(MatchProbabilityDTO match)
+        {
+            if (match == null || (match.WinA == 0 && match.Draw == 0 && match.WinB == 0))
+                throw new ArgumentException("Match is empty.");
+
+            double roll = Random.Shared.NextDouble();
+
+            if (roll <= match.WinA)
+                return MatchOutcome.WinA;
+
+            if (roll <= match.WinA + match.Draw)
+                return MatchOutcome.Draw;
+
+            return MatchOutcome.WinB;
         }
     }
 }

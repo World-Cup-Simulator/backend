@@ -13,7 +13,7 @@ namespace WCS.Application.Services.Ratings
             return AttackRatingCalculator.CalculateHistorical(data, _RatingWeights);
         }
 
-        public double CalculateAttack(List<RatingDataDTO> data, double accumulatedScores, double accumulatedWeights)
+        public AttackRatingDTO CalculateAttack(List<RatingDataDTO> data, double accumulatedScores, double accumulatedWeights)
         {
             return AttackRatingCalculator.Calculate(data, _RatingWeights, accumulatedScores, accumulatedWeights);
         }
@@ -23,7 +23,7 @@ namespace WCS.Application.Services.Ratings
             return DefenseRatingCalculator.CalculateHistorical(data, _RatingWeights);
         }
 
-        public double CalculateDefense(List<RatingDataDTO> data, double accumulatedPenalties, int accumulatedCount)
+        public DefenseRatingDTO CalculateDefense(List<RatingDataDTO> data, double accumulatedPenalties, int accumulatedCount)
         {
             return DefenseRatingCalculator.Calculate(data, _RatingWeights, accumulatedPenalties, accumulatedCount);
         }

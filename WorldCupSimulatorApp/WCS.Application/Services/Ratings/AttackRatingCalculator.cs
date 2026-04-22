@@ -55,10 +55,10 @@ namespace WCS.Application.Services.Ratings
             };
         }
 
-        public static double Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights, double accumulatedScores,
+        public static AttackRatingDTO Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights, double accumulatedScores,
             double accumulatedWeights)
         {
-            if (data == null || data.Count == 0) return 0;
+            if (data == null || data.Count == 0) return new AttackRatingDTO();
 
             var helper = new RatingHelper();
 
@@ -96,7 +96,14 @@ namespace WCS.Application.Services.Ratings
             }
 
             // Weighted average goals scored.
-            return sumWeights == 0 ? 0 : sumScores / sumWeights;
+            var attackRating = sumWeights == 0 ? 0 : sumScores / sumWeights;
+
+            return new AttackRatingDTO
+            {
+                AttackRating = attackRating,
+                AccumulatedScores = sumScores,
+                AccumulatedWeights = sumWeights,
+            };
         }
     }
 }

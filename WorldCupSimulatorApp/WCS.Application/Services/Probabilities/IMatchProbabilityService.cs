@@ -1,4 +1,5 @@
 ﻿using WCS.Application.DTO.ProbabilitiesDTO;
+using WCS.Domain.Enums;
 
 namespace WCS.Application.Services.Probabilities
 {
@@ -6,6 +7,10 @@ namespace WCS.Application.Services.Probabilities
     {
         double CalculateLambda(double attackRating, double opponentDefenseRating);
 
-        List<ScoreProbabilityDTO> CalculateMatchProbabilities(int maxGoals, double lambdaA, double lambdaB);
+        MatchProbabilityDTO CalculateMatchProbabilities(int maxGoals, double lambdaA, double lambdaB);
+
+        ScoreProbabilityDTO PickRandomScore(List<ScoreProbabilityDTO> scores);
+
+        MatchOutcome PickRandomOutcome(MatchProbabilityDTO match);
     }
 }

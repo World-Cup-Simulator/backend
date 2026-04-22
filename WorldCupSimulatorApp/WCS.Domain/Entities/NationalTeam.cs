@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using WCS.Domain.Enums;
 
 namespace WCS.Domain.Entities
@@ -20,7 +19,7 @@ namespace WCS.Domain.Entities
         public double AccumulatedScores { get; set; }
         public double AccumulatedWeights { get; set; }
         public double AccumulatedPenalties { get; set; }
-        public double AccumulatedCount { get; set; }
+        public int AccumulatedCount { get; set; }
 
         public List<HistoricalMatch> TeamAMatches { get; set; } = [];
         public List<HistoricalMatch> TeamBMatches { get; set; } = [];

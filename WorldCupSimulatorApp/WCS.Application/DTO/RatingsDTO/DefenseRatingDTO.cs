@@ -4,6 +4,6 @@
     {
         public double DefenseRating { get; set; }
         public double AccumulatedPenalties { get; set; }
-        public double AccumulatedCount { get; set; }
+        public int AccumulatedCount { get; set; }
     }
 }

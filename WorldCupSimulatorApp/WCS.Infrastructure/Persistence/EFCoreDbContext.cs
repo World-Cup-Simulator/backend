@@ -57,7 +57,7 @@ namespace WCS.Infrastructure.Persistence
                     .HasPrecision(5, 2);
 
                 entity.Property(x => x.AccumulatedCount)
-                    .HasPrecision(5, 2);
+                    .HasPrecision(3);
 
                 entity.HasMany(t => t.TeamAMatches)
                     .WithOne(hm => hm.TeamA)
