@@ -3,7 +3,7 @@ using WCS.Application.DTO.RatingsDTO;
 
 namespace WCS.Application.Services.Simulators
 {
-    public interface I  
+    public interface ISimulationService 
     {
         List<SimpleMatchResultDTO> SimpleSimulateGroupsStage(List<SimpleSimulationMatchDTO> matches);
 

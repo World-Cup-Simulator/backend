@@ -5,7 +5,8 @@ namespace WCS.Application.Services.Ratings
 {
     public class AttackRatingCalculator
     {
-        public static AttackRatingDTO CalculateHistorical(List<RatingDataDTO> data, RatingWeightsOptions weights)
+        public static AttackRatingDTO Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights, double? accumulatedScores,
+            double? accumulatedWeights)
         {
             if (data == null || data.Count == 0) return new AttackRatingDTO();
 
@@ -14,56 +15,11 @@ namespace WCS.Application.Services.Ratings
             double sumWeights = 0;
             double sumScores = 0;
 
-            foreach (var match in data)
+            if (accumulatedScores != null && accumulatedWeights != null && accumulatedScores > 0 && accumulatedWeights > 0)
             {
-                double score = 0;
-                double recencyWeight = helper.GetRecencyWeight(match.Date);
-                double rivalWeight = helper.GetRankingWeight(match.OpponentFifaRank);
-
-                if (!weights.Competition.TryGetValue(
-                    match.Competition.ToString(),
-                    out var competitionWeight))
-                {
-                    competitionWeight = 0.85;
-                }
-
-                if (!weights.Stage.TryGetValue(
-                    match.Stage.ToString(),
-                    out var stageWeight))
-                {
-                    stageWeight = 1;
-                }
-
-                // Combined importance of the match.
-                double totalWeight = recencyWeight * rivalWeight * competitionWeight * stageWeight;
-
-                // Offensive contribution adjusted by match importance.
-                score = match.GoalsScored * totalWeight;
-
-                sumScores += score;
-                sumWeights += totalWeight;
+                sumWeights = accumulatedWeights.Value;
+                sumScores = accumulatedScores.Value;
             }
-
-            // Weighted average goals scored.
-            var attackRating = sumWeights == 0 ? 0 : sumScores / sumWeights;
-
-            return new AttackRatingDTO
-            {
-                AttackRating = attackRating,
-                AccumulatedScores = sumScores,
-                AccumulatedWeights = sumWeights,
-            };
-        }
-
-        public static AttackRatingDTO Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights, double accumulatedScores,
-            double accumulatedWeights)
-        {
-            if (data == null || data.Count == 0) return new AttackRatingDTO();
-
-            var helper = new RatingHelper();
-
-            double sumWeights = accumulatedWeights;
-            double sumScores = accumulatedScores;
 
             foreach (var match in data)
             {
