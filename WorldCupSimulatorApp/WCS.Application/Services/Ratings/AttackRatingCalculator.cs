@@ -5,8 +5,8 @@ namespace WCS.Application.Services.Ratings
 {
     public class AttackRatingCalculator
     {
-        public static AttackRatingDTO Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights, double? accumulatedScores,
-            double? accumulatedWeights)
+        public static AttackRatingDTO Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights, 
+            double accumulatedScores, double accumulatedWeights)
         {
             if (data == null || data.Count == 0) return new AttackRatingDTO();
 
@@ -15,10 +15,10 @@ namespace WCS.Application.Services.Ratings
             double sumWeights = 0;
             double sumScores = 0;
 
-            if (accumulatedScores != null && accumulatedWeights != null && accumulatedScores > 0 && accumulatedWeights > 0)
+            if (accumulatedScores > 0 && accumulatedWeights > 0)
             {
-                sumWeights = accumulatedWeights.Value;
-                sumScores = accumulatedScores.Value;
+                sumWeights = accumulatedWeights;
+                sumScores = accumulatedScores;
             }
 
             foreach (var match in data)
