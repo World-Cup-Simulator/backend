@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WCS.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using WCS.Infrastructure.Persistence;
 namespace WCS.Infrastructure.Migrations
 {
     [DbContext(typeof(EFCoreDbContext))]
-    partial class EFCoreDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260421234442_AddRatingAccumulators")]
+    partial class AddRatingAccumulators
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -78,9 +81,9 @@ namespace WCS.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NationalTeamId"));
 
-                    b.Property<int>("AccumulatedCount")
-                        .HasPrecision(3)
-                        .HasColumnType("integer");
+                    b.Property<double>("AccumulatedCount")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("double precision");
 
                     b.Property<double>("AccumulatedPenalties")
                         .HasPrecision(5, 2)

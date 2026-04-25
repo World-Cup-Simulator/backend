@@ -16,9 +16,10 @@ namespace WCS.Domain.Entities
         public int CurrentFifaRank { get; set; }
         public double AttackRating { get; set; }
         public double DefenseRating { get; set; }
-        public double OverallRating { get; set; }
-        public double AvgGoalsScored { get; set; }
-        public double AvgGoalsConceded { get; set; }
+        public double AccumulatedScores { get; set; }
+        public double AccumulatedWeights { get; set; }
+        public double AccumulatedPenalties { get; set; }
+        public int AccumulatedCount { get; set; }
 
         public List<HistoricalMatch> TeamAMatches { get; set; } = [];
         public List<HistoricalMatch> TeamBMatches { get; set; } = [];
