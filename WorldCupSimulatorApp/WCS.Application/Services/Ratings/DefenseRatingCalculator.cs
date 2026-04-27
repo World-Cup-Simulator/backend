@@ -10,8 +10,6 @@ namespace WCS.Application.Services.Ratings
         {
             if (data == null || data.Count == 0) return new DefenseRatingDTO();
 
-            var helper = new RatingHelper();
-
             double sumPenalties = 0;
             int count = 0;
 
@@ -23,8 +21,8 @@ namespace WCS.Application.Services.Ratings
 
             foreach (var match in data)
             {
-                double recencyWeight = helper.GetRecencyWeight(match.Date);
-                double rivalWeight = helper.GetRankingWeight(match.OpponentFifaRank);
+                double recencyWeight = RatingHelper.GetRecencyWeight(match.Date);
+                double rivalWeight = RatingHelper.GetRankingWeight(match.OpponentFifaRank);
 
                 // Prevent division by zero and extreme values from weak opponents.
                 var attack = Math.Max(0.25, match.OpponentAttackRating);

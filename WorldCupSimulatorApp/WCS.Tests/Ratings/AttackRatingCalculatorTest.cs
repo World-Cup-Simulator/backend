@@ -46,12 +46,28 @@ namespace WCS.Tests.Ratings
         [Fact]
         public void Calculate_ShouldTreatNegativeAccumulatedAsZero()
         {
-            var data = new List<RatingDataDTO>();
+            var today = DateOnly.FromDateTime(DateTime.Today);
 
-            var result = AttackRatingCalculator.Calculate(data, _mockWeights, -10, -5);
+            var data = new List<RatingDataDTO>
+            {
+                new() {
+                    GoalsScored = 3,
+                    Date = today,
+                    OpponentFifaRank = 20 // Rank weight = 2.0
+                }
+            };
 
-            result.AccumulatedScores.Should().Be(0);
-            result.AccumulatedWeights.Should().Be(0);
+            var result = AttackRatingCalculator.Calculate(data, null!, -10, -5);
+
+            // Expected calculations:
+            // Match Weight = 1.0 (today) * 2.0 (rank) * 0.85 (default comp) * 1.0 (default stage) = 1.7
+            // Match Score = 3 goals * 1.7 = 5.1
+            // Total Scores = 0 (accumulated) + 5.1 = 5.1
+            // Total Weights = 0 (accumulated) + 1.7 = 1.7
+            // attackRating = 5.1 / 1.7 ≈ 3
+            result.AccumulatedScores.Should().BeApproximately(5.1, 0.0001);
+            result.AccumulatedWeights.Should().BeApproximately(1.7, 0.0001);
+            result.AttackRating.Should().BeApproximately(3, 0.0001);
         }
 
         [Fact]
@@ -75,7 +91,7 @@ namespace WCS.Tests.Ratings
             // Match Score = 3 goals * 1.7 = 5.1
             // Total Scores = 10 (accumulated) + 5.1 = 15.1
             // Total Weights = 5 (accumulated) + 1.7 = 6.7
-            // Rating = 15.1 / 6.7 ≈ 2.2537
+            // attackRating = 15.1 / 6.7 ≈ 2.2537
             result.AccumulatedScores.Should().BeApproximately(15.1, 0.0001);
             result.AccumulatedWeights.Should().BeApproximately(6.7, 0.0001);
             result.AttackRating.Should().BeApproximately(2.2537, 0.0001);
@@ -98,7 +114,7 @@ namespace WCS.Tests.Ratings
                 }
             };
 
-            // Expected manual calculation:
+            // Expected calculations:
             // totalWeight = 1.0 (recency) * 2.0 (rank) * 1.4 (comp) * 1.0 (stage) = 2.8
             // score = 2 (goals) * 2.8 = 5.6
             // attackRating = 5.6 / 2.8 = 2.0
@@ -130,7 +146,7 @@ namespace WCS.Tests.Ratings
 
             // Score1: 2 * 1.0 = 2 | Score2: 4 * 2.0 = 8
             // SumScores = 10 | SumWeights = 3.0
-            // Rating = 10 / 3 = 3.3333
+            // attackRating = 10 / 3 = 3.3333
             var result = AttackRatingCalculator.Calculate(data, _mockWeights, 0, 0);
 
             result.AttackRating.Should().BeApproximately(3.3333, 0.0001);

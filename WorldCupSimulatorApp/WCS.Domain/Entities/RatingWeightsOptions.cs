@@ -4,6 +4,5 @@
     {
         public Dictionary<string, double> Competition { get; set; } = [];
         public Dictionary<string, double> Stage { get; set; } = [];
-        public Dictionary<string, double> Confederation { get; set; } = [];
     }
 }

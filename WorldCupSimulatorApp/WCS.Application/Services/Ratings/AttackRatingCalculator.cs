@@ -8,9 +8,12 @@ namespace WCS.Application.Services.Ratings
         public static AttackRatingDTO Calculate(List<RatingDataDTO> data, RatingWeightsOptions weights, 
             double accumulatedScores, double accumulatedWeights)
         {
-            if (data == null || data.Count == 0) return new AttackRatingDTO();
-
-            var helper = new RatingHelper();
+            if (data == null || data.Count == 0) return new AttackRatingDTO
+            {
+                AttackRating = accumulatedWeights <= 0 ? 0 : accumulatedScores / accumulatedWeights,
+                AccumulatedScores = accumulatedScores <= 0 ? 0 : accumulatedScores,
+                AccumulatedWeights = accumulatedWeights <= 0 ? 0 : accumulatedWeights
+            };
 
             double sumWeights = 0;
             double sumScores = 0;
@@ -24,21 +27,21 @@ namespace WCS.Application.Services.Ratings
             foreach (var match in data)
             {
                 double score = 0;
-                double recencyWeight = helper.GetRecencyWeight(match.Date);
-                double rivalWeight = helper.GetRankingWeight(match.OpponentFifaRank);
+                double recencyWeight = RatingHelper.GetRecencyWeight(match.Date);
+                double rivalWeight = RatingHelper.GetRankingWeight(match.OpponentFifaRank);
 
-                if (!weights.Competition.TryGetValue(
-                    match.Competition.ToString(),
-                    out var competitionWeight))
+                // Try to get the value, if it fails or is null, use 0.85
+                double competitionWeight = 0.85;
+                if (weights?.Competition != null && weights.Competition.TryGetValue(match.Competition.ToString(), out var compW))
                 {
-                    competitionWeight = 0.85;
+                    competitionWeight = compW;
                 }
 
-                if (!weights.Stage.TryGetValue(
-                    match.Stage.ToString(),
-                    out var stageWeight))
+                // Try to get the value, if it fails or is null, use 1.0
+                double stageWeight = 1.0;
+                if (weights?.Stage != null && weights.Stage.TryGetValue(match.Stage.ToString(), out var stageW))
                 {
-                    stageWeight = 1;
+                    stageWeight = stageW;
                 }
 
                 // Combined importance of the match.
