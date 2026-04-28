@@ -7,6 +7,11 @@
         // Output range limited between 0.5 and 2.0.
         public static double GetRankingWeight(int rank)
         {
+            if (rank <= 0)
+            {
+                return 0.5;
+            }
+
             return Math.Clamp(2.2 - (rank / 100.0), 0.5, 2.0);
         }
 
