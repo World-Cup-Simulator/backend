@@ -1,4 +1,5 @@
-﻿using WCS.Application.DTO.MatchesDTO;
+﻿using WCS.Application.DTO.Mappers;
+using WCS.Application.DTO.MatchesDTO;
 using WCS.Application.DTO.ProbabilitiesDTO;
 using WCS.Application.DTO.RatingsDTO;
 using WCS.Application.Services.Probabilities;
@@ -22,9 +23,10 @@ namespace WCS.Application.Services.Simulators
 
             foreach (var match in matches)
             {
+                // Compute probabilities once (no recalculation in simple mode)
                 var matchProbability = GetProbabilities(match);
                 var winner = _matchProbabilityService.PickRandomOutcome(matchProbability);
-                var result = SimpleBuildResult(match, winner, matchProbability);
+                var result = SimulationMappers.SimpleBuildResult(match, winner, matchProbability);
 
                 results.Add(result);
             }
@@ -41,11 +43,19 @@ namespace WCS.Application.Services.Simulators
             foreach (var match in matches)
             {
                 var matchProbability = GetProbabilities(match);
-                var winner = PickKnockoutWinner(matchProbability.WinA, matchProbability.WinB);
-                matchProbability.WinA = winner.AProbability;
-                matchProbability.WinB = winner.BProbability;
-                matchProbability.Draw = 0;
-                var result = SimpleBuildResult(match, winner.MatchOutcome, matchProbability);
+                var winner = _matchProbabilityService.PickRandomOutcome(matchProbability);
+
+                var result = SimulationMappers.SimpleBuildResult(match, winner, matchProbability);
+
+                // Knockout stages cannot end in a draw
+                if (winner == MatchOutcome.Draw)
+                {
+                    var decider = PickKnockoutWinner(matchProbability.WinA, matchProbability.WinB);
+                    matchProbability.WinA = decider.AProbability;
+                    matchProbability.WinB = decider.BProbability;
+                    matchProbability.Draw = 0;
+                    result = SimulationMappers.SimpleBuildResult(match, decider.MatchOutcome, matchProbability);
+                }
 
                 results.Add(result);
             }
@@ -61,11 +71,15 @@ namespace WCS.Application.Services.Simulators
 
             foreach (var match in matches)
             {
+                // Compute probabilities once (no recalculation in simple mode)
                 var matchProbability = GetProbabilities(match);
+
+                // Randomly select a score based on Poisson distribution
                 var score = _matchProbabilityService.PickRandomScore(matchProbability.Scores);
 
-                var result = BuildResult(match, score, matchProbability);
+                var result = SimulationMappers.BuildResult(match, score, matchProbability);
 
+                // If score is tied, explicitly mark as draw
                 if (score.GoalsA == score.GoalsB)
                 {
                     result.Winner = MatchOutcome.Draw;
@@ -88,24 +102,29 @@ namespace WCS.Application.Services.Simulators
             foreach (var match in matches)
             {
                 var matchProbability = GetProbabilities(match);
-                var score = _matchProbabilityService.PickRandomScore(matchProbability.Scores);
-                var winner = PickKnockoutWinner(matchProbability.WinA, matchProbability.WinB);
+                var score = _matchProbabilityService.PickRandomScore(matchProbability.Scores);                               
 
-                var result = BuildResult(match, score, matchProbability);
+                var result = SimulationMappers.BuildResult(match, score, matchProbability);
 
+                // Knockout stages cannot end in a draw
                 if (score.GoalsA == score.GoalsB)
                 {
+                    // Decide winner via penalties
+                    var winner = PickKnockoutWinner(matchProbability.WinA, matchProbability.WinB);
+
                     result.Winner = winner.MatchOutcome;
 
                     if (winner.MatchOutcome == MatchOutcome.WinA)
                     {
                         result.WinnerID = match.TeamAID;
+                        // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
                         result.OutcomeProbability = winner.AProbability;
                         result.DecidedByPenalties = true;
                     }
                     else
                     {
                         result.WinnerID = match.TeamBID;
+                        // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
                         result.OutcomeProbability = winner.BProbability;
                         result.DecidedByPenalties = true;
                     }
@@ -130,40 +149,51 @@ namespace WCS.Application.Services.Simulators
                     TeamB = match.TeamB,
                 };
 
+                // Extract previous data for each team
                 var aRatingData = previousResults.Where(r => r.TeamID == match.TeamAID).ToList();
                 var bRatingData = previousResults.Where(r => r.TeamID == match.TeamBID).ToList();
 
-                var AdptRatings = CalculateAdaptativeProbabilities(match, aRatingData, bRatingData);
+                // Compute adaptive ratings and expected goals (lambda) based on past performance
+                var AdptRatings = CalculateAdaptativeRatings(match, aRatingData, bRatingData);
 
-                var matchProbability = _matchProbabilityService.CalculateMatchProbabilities(MaxGoals, AdptRatings.LambdaA, AdptRatings.LambdaB);
+                // Generate match probabilities using updated lambdas (Poisson model)
+                var matchProbability = _matchProbabilityService.CalculateMatchProbabilities(MaxGoals, AdptRatings.LambdaA,
+                    AdptRatings.LambdaB);
+
+                // Sample a score from the probability distribution
                 var score = _matchProbabilityService.PickRandomScore(matchProbability.Scores);
 
                 result.GoalsA = score.GoalsA;
                 result.GoalsB = score.GoalsB;
-                result.ScoreProbability = score.Probability;
-
-                var winner = PickKnockoutWinner(matchProbability.WinA, matchProbability.WinB);
+                result.ScoreProbability = score.Probability;                              
 
                 if (score.GoalsA > score.GoalsB)
                 {
-                    AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, matchProbability.WinA, false,
+                    // Direct win, use original model probability
+                    SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, matchProbability.WinA, false,
                         AdptRatings.AAttackRating, AdptRatings.ADefenseRating);
                 }
                 else if (score.GoalsB > score.GoalsA)
                 {
-                    AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamBID, matchProbability.WinB, false,
+                    // Direct win, use original model probability
+                    SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamBID, matchProbability.WinB, false,
                         AdptRatings.BAttackRating, AdptRatings.BDefenseRating);
                 }
                 else
                 {
+                    // Decide winner via penalties
+                    var winner = PickKnockoutWinner(matchProbability.WinA, matchProbability.WinB);
+
                     if (winner.MatchOutcome == MatchOutcome.WinA)
                     {
-                        AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, winner.AProbability, true,
+                        // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
+                        SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, winner.AProbability, true,
                             AdptRatings.AAttackRating, AdptRatings.ADefenseRating);
                     }
                     else
                     {
-                        AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamBID, winner.BProbability, true,
+                        // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
+                        SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamBID, winner.BProbability, true,
                             AdptRatings.BAttackRating, AdptRatings.BDefenseRating);
                     }
                 }
@@ -174,8 +204,11 @@ namespace WCS.Application.Services.Simulators
 
         private MatchProbabilityDTO GetProbabilities(SimpleSimulationMatchDTO match)
         {
+            // Compute expected goals (lambda) for both teams based on attack vs defense ratings
             var lambdaA = _matchProbabilityService.CalculateLambda(match.AAttackRating, match.BDefenseRating);
             var lambdaB = _matchProbabilityService.CalculateLambda(match.BAttackRating, match.ADefenseRating);
+
+            // Use Poisson model to derive match outcome probabilities up to MaxGoals
             return _matchProbabilityService.CalculateMatchProbabilities(MaxGoals, lambdaA, lambdaB);
         }
 
@@ -190,10 +223,12 @@ namespace WCS.Application.Services.Simulators
             if (winA == 0 && winB == 0)
                 throw new ArgumentException("Probabilities cannot be 0.");
 
+            // Normalize probabilities to ensure they sum to 1
             double totalProbability = winA + winB;
             double AProbability = winA / totalProbability;
             double BProbability = winB / totalProbability;
 
+            // Random draw to decide winner based on normalized probabilities
             double roll = Random.Shared.NextDouble();
 
             var winner = roll <= AProbability ? MatchOutcome.WinA : MatchOutcome.WinB;
@@ -206,9 +241,10 @@ namespace WCS.Application.Services.Simulators
             };
         }
 
-        private AdaptativeRatingsDTO CalculateAdaptativeProbabilities(AdaptativeSimulationMatchDTO match,
+        private AdaptativeRatingsDTO CalculateAdaptativeRatings(AdaptativeSimulationMatchDTO match,
                 List<RatingDataDTO> aRatingData, List<RatingDataDTO> bRatingData)
         {
+            // Compute dynamic (adaptive) attack/defense ratings based on historical data + accumulated stats
             var aAttackRating = _ratingService.CalculateAttack(aRatingData, match.AAccumulatedScores,
                     match.AAccumulatedWeights);
             var aDefenseRating = _ratingService.CalculateDefense(aRatingData, match.AAccumulatedPenalties,
@@ -218,9 +254,11 @@ namespace WCS.Application.Services.Simulators
             var bDefenseRating = _ratingService.CalculateDefense(bRatingData, match.BAccumulatedPenalties,
                 match.BAccumulatedCount);
 
+            // Convert ratings into expected goals (Poisson lambda)
             var lambdaA = _matchProbabilityService.CalculateLambda(aAttackRating.AttackRating, bDefenseRating.DefenseRating);
             var lambdaB = _matchProbabilityService.CalculateLambda(bAttackRating.AttackRating, aDefenseRating.DefenseRating);
 
+            // Return both lambdas and full rating breakdown for later use (e.g., calculate match probabilities)
             return new AdaptativeRatingsDTO
             {
                 LambdaA = lambdaA,
@@ -230,78 +268,6 @@ namespace WCS.Application.Services.Simulators
                 BAttackRating = bAttackRating,
                 BDefenseRating = bDefenseRating
             };
-        }
-
-        private static void AssignWinnerAccumulatedData(AdaptativeMatchResultDTO result, MatchOutcome winner, int teamID,
-            double probability, bool penalties, AttackRatingDTO attack, DefenseRatingDTO defense)
-        {
-            result.Winner = winner;
-            result.WinnerID = teamID;
-            result.OutcomeProbability = probability;
-            result.DecidedByPenalties = penalties;
-            result.WinnerAccumulatedScores = attack.AccumulatedScores;
-            result.WinnerAccumulatedWeights = attack.AccumulatedWeights;
-            result.WinnerAccumulatedPenalties = defense.AccumulatedPenalties;
-            result.WinnerAccumulatedCount = defense.AccumulatedCount;
-        }
-
-        private static SimpleMatchResultDTO SimpleBuildResult(SimpleSimulationMatchDTO match, MatchOutcome outcome,
-            MatchProbabilityDTO matchProbability)
-        {
-            var result = new SimpleMatchResultDTO
-            {
-                TeamA = match.TeamA,
-                TeamB = match.TeamB
-            };
-
-            if (outcome == MatchOutcome.WinA)
-            {
-                result.Winner = MatchOutcome.WinA;
-                result.WinnerID = match.TeamAID;
-                result.OutcomeProbability = matchProbability.WinA;
-            }
-            else if (outcome == MatchOutcome.WinB)
-            {
-                result.Winner = MatchOutcome.WinB;
-                result.WinnerID = match.TeamBID;
-                result.OutcomeProbability = matchProbability.WinB;
-            }
-            else
-            {
-                result.Winner = MatchOutcome.Draw;
-                result.WinnerID = null;
-                result.OutcomeProbability = matchProbability.Draw;
-            }
-
-            return result;
-        }
-
-        private static MatchResultDTO BuildResult(SimpleSimulationMatchDTO match, ScoreProbabilityDTO score,
-            MatchProbabilityDTO matchProbability)
-        {
-            var result = new MatchResultDTO
-            {
-                TeamA = match.TeamA,
-                TeamB = match.TeamB,
-                GoalsA = score.GoalsA,
-                GoalsB = score.GoalsB,
-                ScoreProbability = score.Probability,
-            };
-
-            if (score.GoalsA > score.GoalsB)
-            {
-                result.Winner = MatchOutcome.WinA;
-                result.WinnerID = match.TeamAID;
-                result.OutcomeProbability = matchProbability.WinA;
-            }
-            else if (score.GoalsB > score.GoalsA)
-            {
-                result.Winner = MatchOutcome.WinB;
-                result.WinnerID = match.TeamBID;
-                result.OutcomeProbability = matchProbability.WinB;
-            }
-
-            return result;
-        }
+        }        
     }
 }
