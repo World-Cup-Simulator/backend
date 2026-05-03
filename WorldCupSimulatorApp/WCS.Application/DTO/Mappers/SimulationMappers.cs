@@ -7,12 +7,13 @@ namespace WCS.Application.DTO.Mappers
 {
     public class SimulationMappers
     {
-        public static void AssignWinnerAccumulatedData(AdaptativeMatchResultDTO result, MatchOutcome winner, int teamID,
-            double probability, bool penalties, AttackRatingDTO attack, DefenseRatingDTO defense)
+        public static void AssignWinnerAccumulatedData(AdaptativeMatchResultDTO result, MatchOutcome winner, int teamAID,
+            int teamBID, double probability, bool penalties, AttackRatingDTO attack, DefenseRatingDTO defense)
         {
             // Map winner outcome + carry over accumulated stats from the winning team
             result.Winner = winner;
-            result.WinnerID = teamID;
+            result.TeamAID = teamAID;
+            result.TeamBID = teamBID;
             result.OutcomeProbability = probability;
             result.DecidedByPenalties = penalties;
             result.WinnerAccumulatedScores = attack.AccumulatedScores;
@@ -27,25 +28,24 @@ namespace WCS.Application.DTO.Mappers
             var result = new SimpleMatchResultDTO
             {
                 TeamA = match.TeamA,
-                TeamB = match.TeamB
+                TeamB = match.TeamB,
+                TeamAID = match.TeamAID,
+                TeamBID = match.TeamBID
             };
 
             if (outcome == MatchOutcome.WinA)
             {
                 result.Winner = MatchOutcome.WinA;
-                result.WinnerID = match.TeamAID;
                 result.OutcomeProbability = matchProbability.WinA;
             }
             else if (outcome == MatchOutcome.WinB)
             {
                 result.Winner = MatchOutcome.WinB;
-                result.WinnerID = match.TeamBID;
                 result.OutcomeProbability = matchProbability.WinB;
             }
             else
             {
                 result.Winner = MatchOutcome.Draw;
-                result.WinnerID = null;
                 result.OutcomeProbability = matchProbability.Draw;
             }
 
@@ -59,6 +59,8 @@ namespace WCS.Application.DTO.Mappers
             {
                 TeamA = match.TeamA,
                 TeamB = match.TeamB,
+                TeamAID = match.TeamAID,
+                TeamBID = match.TeamBID,
                 GoalsA = score.GoalsA,
                 GoalsB = score.GoalsB,
                 ScoreProbability = score.Probability,
@@ -67,13 +69,11 @@ namespace WCS.Application.DTO.Mappers
             if (score.GoalsA > score.GoalsB)
             {
                 result.Winner = MatchOutcome.WinA;
-                result.WinnerID = match.TeamAID;
                 result.OutcomeProbability = matchProbability.WinA;
             }
             else if (score.GoalsB > score.GoalsA)
             {
                 result.Winner = MatchOutcome.WinB;
-                result.WinnerID = match.TeamBID;
                 result.OutcomeProbability = matchProbability.WinB;
             }
 

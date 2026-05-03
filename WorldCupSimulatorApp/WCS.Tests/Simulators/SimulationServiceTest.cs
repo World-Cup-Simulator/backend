@@ -53,7 +53,7 @@ namespace WCS.Tests.Simulators
 
             results.Should().HaveCount(2); // Validate count
             results[0].TeamA.Should().Be("Argentina");
-            results[0].WinnerID.Should().Be(1); // Team A wins according to our mock
+            results[0].Winner.Should().Be(MatchOutcome.WinA); // Team A wins according to our mock
             results[1].TeamA.Should().Be("México");
             results[1].OutcomeProbability.Should().Be(0.5);
 
@@ -87,7 +87,7 @@ namespace WCS.Tests.Simulators
             var results = _service.SimpleSimulateKnockouts(matches);
 
             results[0].TeamA.Should().Be("Argentina");
-            results[0].WinnerID.Should().Be(1);
+            results[0].Winner.Should().Be(MatchOutcome.WinA);
             results[1].Winner.Should().Be(MatchOutcome.WinA);
             results[1].OutcomeProbability.Should().Be(0.6);
         }
@@ -145,7 +145,6 @@ namespace WCS.Tests.Simulators
             var result = _service.SimpleSimulateGroupsStageWithScores(matches).First();
 
             result.Winner.Should().Be(MatchOutcome.WinA);
-            result.WinnerID.Should().Be(1);
             result.OutcomeProbability.Should().Be(0.6); // Total win probability for Team A
             result.ScoreProbability.Should().Be(0.1);   // Specific probability of the 2-1 score
         }
@@ -170,7 +169,6 @@ namespace WCS.Tests.Simulators
             var result = _service.SimpleSimulateGroupsStageWithScores(matches).First();
 
             result.Winner.Should().Be(MatchOutcome.Draw);
-            result.WinnerID.Should().BeNull();
             result.GoalsA.Should().Be(1);
             result.GoalsB.Should().Be(1);
             result.OutcomeProbability.Should().Be(0.3); // Should use the total draw probability
@@ -196,8 +194,8 @@ namespace WCS.Tests.Simulators
             var results = _service.SimpleSimulateGroupsStageWithScores(matches);
 
             results.Should().HaveCount(2);
-            results[0].WinnerID.Should().Be(1);
-            results[1].WinnerID.Should().Be(4);
+            results[0].Winner.Should().Be(MatchOutcome.WinA);
+            results[1].Winner.Should().Be(MatchOutcome.WinA);
             _probMock.Verify(p => p.PickRandomScore(It.IsAny<List<ScoreProbabilityDTO>>()), Times.Exactly(2));
         }
 
@@ -252,7 +250,6 @@ namespace WCS.Tests.Simulators
             result.GoalsB.Should().Be(2);
             result.Winner.Should().NotBe(MatchOutcome.Draw); // Draws are not allowed in knockout stages
             result.DecidedByPenalties.Should().BeTrue();
-            result.WinnerID.Should().NotBeNull();
             // The probability must be normalized (0.5 / (0.5 + 0.5) = 0.5)
             result.OutcomeProbability.Should().Be(0.5);
         }
@@ -276,8 +273,8 @@ namespace WCS.Tests.Simulators
             var results = _service.SimpleSimulateKnockoutsWithScores(matches);
 
             results.Should().HaveCount(2);
-            results[0].WinnerID.Should().Be(1);
-            results[1].WinnerID.Should().Be(4);
+            results[0].Winner.Should().Be(MatchOutcome.WinA);
+            results[1].Winner.Should().Be(MatchOutcome.WinA);
             _probMock.Verify(p => p.PickRandomScore(It.IsAny<List<ScoreProbabilityDTO>>()), Times.Exactly(2));
         }
 
@@ -344,7 +341,7 @@ namespace WCS.Tests.Simulators
 
             var result = _service.SimulateAdaptativeKnockoutsWithScores(matches, []).First();
 
-            result.WinnerID.Should().Be(2);
+            result.Winner.Should().Be(MatchOutcome.WinB);
             result.WinnerAccumulatedScores.Should().Be(999);
         }
 

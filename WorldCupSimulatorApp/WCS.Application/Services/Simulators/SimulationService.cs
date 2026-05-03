@@ -83,7 +83,6 @@ namespace WCS.Application.Services.Simulators
                 if (score.GoalsA == score.GoalsB)
                 {
                     result.Winner = MatchOutcome.Draw;
-                    result.WinnerID = null;
                     result.OutcomeProbability = matchProbability.Draw;
                 }
 
@@ -116,14 +115,12 @@ namespace WCS.Application.Services.Simulators
 
                     if (winner.MatchOutcome == MatchOutcome.WinA)
                     {
-                        result.WinnerID = match.TeamAID;
                         // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
                         result.OutcomeProbability = winner.AProbability;
                         result.DecidedByPenalties = true;
                     }
                     else
                     {
-                        result.WinnerID = match.TeamBID;
                         // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
                         result.OutcomeProbability = winner.BProbability;
                         result.DecidedByPenalties = true;
@@ -170,14 +167,14 @@ namespace WCS.Application.Services.Simulators
                 if (score.GoalsA > score.GoalsB)
                 {
                     // Direct win, use original model probability
-                    SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, matchProbability.WinA, false,
-                        AdptRatings.AAttackRating, AdptRatings.ADefenseRating);
+                    SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, match.TeamBID,
+                        matchProbability.WinA, false, AdptRatings.AAttackRating, AdptRatings.ADefenseRating);
                 }
                 else if (score.GoalsB > score.GoalsA)
                 {
                     // Direct win, use original model probability
-                    SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamBID, matchProbability.WinB, false,
-                        AdptRatings.BAttackRating, AdptRatings.BDefenseRating);
+                    SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamAID, match.TeamBID,
+                        matchProbability.WinB, false, AdptRatings.BAttackRating, AdptRatings.BDefenseRating);
                 }
                 else
                 {
@@ -187,14 +184,14 @@ namespace WCS.Application.Services.Simulators
                     if (winner.MatchOutcome == MatchOutcome.WinA)
                     {
                         // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
-                        SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, winner.AProbability, true,
-                            AdptRatings.AAttackRating, AdptRatings.ADefenseRating);
+                        SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, match.TeamBID,
+                            winner.AProbability, true, AdptRatings.AAttackRating, AdptRatings.ADefenseRating);
                     }
                     else
                     {
                         // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
-                        SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamBID, winner.BProbability, true,
-                            AdptRatings.BAttackRating, AdptRatings.BDefenseRating);
+                        SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamAID, match.TeamBID,
+                            winner.BProbability, true, AdptRatings.BAttackRating, AdptRatings.BDefenseRating);
                     }
                 }
                 results.Add(result);
