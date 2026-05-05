@@ -3,7 +3,7 @@ using WCS.Application.DTO.ProbabilitiesDTO;
 using WCS.Application.DTO.RatingsDTO;
 using WCS.Domain.Enums;
 
-namespace WCS.Application.DTO.Mappers
+namespace WCS.Application.Mappers
 {
     public class SimulationMappers
     {

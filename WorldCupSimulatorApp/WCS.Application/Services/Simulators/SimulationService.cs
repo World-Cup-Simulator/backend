@@ -1,7 +1,7 @@
-﻿using WCS.Application.DTO.Mappers;
-using WCS.Application.DTO.MatchesDTO;
+﻿using WCS.Application.DTO.MatchesDTO;
 using WCS.Application.DTO.ProbabilitiesDTO;
 using WCS.Application.DTO.RatingsDTO;
+using WCS.Application.Mappers;
 using WCS.Application.Services.Probabilities;
 using WCS.Application.Services.Ratings;
 using WCS.Domain.Enums;
