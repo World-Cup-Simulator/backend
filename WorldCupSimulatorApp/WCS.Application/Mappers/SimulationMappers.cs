@@ -22,7 +22,7 @@ namespace WCS.Application.Mappers
             result.WinnerAccumulatedCount = defense.AccumulatedCount;
         }
 
-        public static SimpleMatchResultDTO SimpleBuildResult(SimpleSimulationMatchDTO match, MatchOutcome outcome,
+        public static SimpleMatchResultDTO SimpleBuildResult(SimulationMatchDTO match, MatchOutcome outcome,
             MatchProbabilityDTO matchProbability)
         {
             var result = new SimpleMatchResultDTO
@@ -52,7 +52,7 @@ namespace WCS.Application.Mappers
             return result;
         }
 
-        public static MatchResultDTO BuildResult(SimpleSimulationMatchDTO match, ScoreProbabilityDTO score,
+        public static MatchResultDTO BuildResult(SimulationMatchDTO match, ScoreProbabilityDTO score,
             MatchProbabilityDTO matchProbability)
         {
             var result = new MatchResultDTO

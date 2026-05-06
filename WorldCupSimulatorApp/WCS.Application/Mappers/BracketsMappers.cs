@@ -1,26 +1,31 @@
-﻿using WCS.Application.DTO.MatchesDTO;
+﻿using WCS.Application.DTO.BracketsDTO;
+using WCS.Application.DTO.MatchesDTO;
 using WCS.Domain.Entities;
 
 namespace WCS.Application.Mappers
 {
     public class BracketsMappers
     {
-        public static List<SimpleSimulationMatchDTO> CreateGroupMatches(List<WorldCupMatch> matches)
+        public static List<SimulationMatchDTO> CreateGroupMatches(List<WorldCupMatch> matches)
         {
-            var simulationList = new List<SimpleSimulationMatchDTO>();
+            var simulationList = new List<SimulationMatchDTO>();
 
             foreach (var match in matches)
             {
-                var simulationMatch = new SimpleSimulationMatchDTO
+                var simulationMatch = new SimulationMatchDTO
                 {
                     TeamAID = match.TeamAId,
                     TeamA = match.TeamA.Team.Name,
-                    AAttackRating = match.TeamA.Team.AttackRating,
-                    ADefenseRating = match.TeamA.Team.DefenseRating,
+                    AAccumulatedScores = match.TeamA.Team.AccumulatedScores,
+                    AAccumulatedWeights = match.TeamA.Team.AccumulatedWeights,
+                    AAccumulatedPenalties = match.TeamA.Team.AccumulatedPenalties,
+                    AAccumulatedCount = match.TeamA.Team.AccumulatedCount,
                     TeamBID = match.TeamBId,
                     TeamB = match.TeamB.Team.Name,
-                    BAttackRating = match.TeamB.Team.AttackRating,
-                    BDefenseRating = match.TeamB.Team.DefenseRating
+                    BAccumulatedScores = match.TeamB.Team.AccumulatedScores,
+                    BAccumulatedWeights = match.TeamB.Team.AccumulatedWeights,
+                    BAccumulatedPenalties = match.TeamB.Team.AccumulatedPenalties,
+                    BAccumulatedCount = match.TeamB.Team.AccumulatedCount
                 };
 
                 simulationList.Add(simulationMatch);
@@ -29,12 +34,39 @@ namespace WCS.Application.Mappers
             return simulationList;
         }
 
-        public static void AssignGoals(GroupTableEntry teamA, GroupTableEntry teamB, MatchResultDTO result)
+        public static GroupResultDTO CreateGroupResult(IMatchResult result)
         {
-            teamA.GoalsScored += result.GoalsA;
-            teamA.GoalsConceded += result.GoalsB;
-            teamB.GoalsScored += result.GoalsB;
-            teamB.GoalsConceded += result.GoalsA;
+            var groupResult = new GroupResultDTO
+            {
+                TeamA = result.TeamA,
+                TeamB = result.TeamB,
+                Winner = result.Winner,
+                TeamAID = result.TeamAID,
+                TeamBID = result.TeamBID,
+                OutcomeProbability = result.OutcomeProbability
+            };
+            
+            if (result is IScoreResult s)
+            {
+                groupResult.GoalsA = s.GoalsA;
+                groupResult.GoalsB = s.GoalsB;
+                groupResult.ScoreProbability = s.GoalsB;
+                groupResult.DecidedByPenalties = s.DecidedByPenalties;
+            }         
+                
+            return groupResult;
+        }
+
+        public static void AssignGoals(GroupTableEntry teamA, GroupTableEntry teamB, IMatchResult result)
+        {
+            // Verify if 'result' is of type 'MatchResultDTO' and assign it to the variable 'm'
+            if (result is IScoreResult s)
+            {
+                teamA.GoalsScored += s.GoalsA;
+                teamA.GoalsConceded += s.GoalsB;
+                teamB.GoalsScored += s.GoalsB;
+                teamB.GoalsConceded += s.GoalsA;
+            }
         }
 
         // NOTE:

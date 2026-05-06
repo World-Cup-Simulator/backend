@@ -2,7 +2,7 @@
 
 namespace WCS.Application.DTO.MatchesDTO
 {
-    public class MatchResultDTO
+    public class MatchResultDTO : IScoreResult
     {
         public string TeamA { get; set; } = string.Empty;
         public string TeamB { get; set; } = string.Empty;

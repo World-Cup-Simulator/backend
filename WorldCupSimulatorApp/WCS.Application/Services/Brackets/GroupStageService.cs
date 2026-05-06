@@ -1,15 +1,13 @@
 ﻿using WCS.Application.DTO.BracketsDTO;
+using WCS.Application.DTO.MatchesDTO;
 using WCS.Application.Mappers;
-using WCS.Application.Services.Simulators;
 using WCS.Domain.Entities;
 using WCS.Domain.Enums;
 
 namespace WCS.Application.Services.Brackets
 {
-    public class GroupStageService(ISimulationService simulationService)
+    public class GroupStageService()
     {
-        private readonly ISimulationService _simulationService = simulationService;
-
         public static List<GroupTable> BuildGroups(List<WorldCupTeam> teams)
         {
             if (teams.Count == 0)
@@ -24,21 +22,32 @@ namespace WCS.Application.Services.Brackets
                     Teams = g.Select(t => new GroupTableEntry
                     {
                         TeamId = t.TeamId,
-                        Name = t.Team.Name
+                        Name = t.Team.Name,
+                        AccumulatedScores = t.Team.AccumulatedScores,
+                        AccumulatedWeights = t.Team.AccumulatedWeights,
+                        AccumulatedPenalties = t.Team.AccumulatedPenalties,
+                        AccumulatedCount = t.Team.AccumulatedCount,
                     }).ToList()
                 })
                 .ToList();
         }
 
-        public void SimpleUpdateGroups(List<WorldCupMatch> matches, List<GroupTable> groupsTable)
+        public static List<GroupResultDTO> UpdateGroups(List<WorldCupMatch> matches, List<GroupTable> groupsTable, Func<List<SimulationMatchDTO>, 
+            List<IMatchResult>> simulate)
         {
+            var resultsList = new List<GroupResultDTO>();
+
             var simulationList = BracketsMappers.CreateGroupMatches(matches);
 
-            var results = _simulationService.SimpleSimulateGroupsStage(simulationList);
+            var results = simulate(simulationList);
 
             var teamLookup = groupsTable
-                .SelectMany(g => g.Teams)
-                .ToDictionary(t => t.TeamId);
+                .SelectMany(g => g.Teams.Select(t => new
+                    {
+                        TeamEntry = t,
+                    g.GroupCode
+                }))
+                .ToDictionary(x => x.TeamEntry.TeamId);
 
             foreach (var result in results)
             {
@@ -47,53 +56,28 @@ namespace WCS.Application.Services.Brackets
 
                 if (result.Winner == MatchOutcome.WinA)
                 {
-                    teamA.Points += 3;
+                    teamA.TeamEntry.Points += 3;
                 }
                 else if (result.Winner == MatchOutcome.WinB)
                 {
-                    teamB.Points += 3;
+                    teamB.TeamEntry.Points += 3;
                 }
                 else // Draw
                 {
-                    teamA.Points += 1;
-                    teamB.Points += 1;
+                    teamA.TeamEntry.Points += 1;
+                    teamB.TeamEntry.Points += 1;                    
                 }
+
+                BracketsMappers.AssignGoals(teamA.TeamEntry, teamB.TeamEntry, result);
+
+                var groupResult = BracketsMappers.CreateGroupResult(result);
+                groupResult.GroupCode = teamA.GroupCode;
+
+                resultsList.Add(groupResult);
             }
-        }
 
-        public void UpdateGroupsWithScores(List<WorldCupMatch> matches, List<GroupTable> groupsTable)
-        {
-            var simulationList = BracketsMappers.CreateGroupMatches(matches);
-
-            var results = _simulationService.SimpleSimulateGroupsStageWithScores(simulationList);
-
-            var teamLookup = groupsTable
-                .SelectMany(g => g.Teams)
-                .ToDictionary(t => t.TeamId);
-
-            foreach (var result in results)
-            {
-                var teamA = teamLookup[result.TeamAID];
-                var teamB = teamLookup[result.TeamBID];
-
-                if (result.Winner == MatchOutcome.WinA)
-                {
-                    teamA.Points += 3;
-                    BracketsMappers.AssignGoals(teamA, teamB, result);
-                }
-                else if (result.Winner == MatchOutcome.WinB)
-                {
-                    teamB.Points += 3;
-                    BracketsMappers.AssignGoals(teamA, teamB, result);
-                }
-                else // Draw
-                {
-                    teamA.Points += 1;
-                    teamB.Points += 1;
-                    BracketsMappers.AssignGoals(teamA, teamB, result);
-                }
-            }
-        }
+            return resultsList;
+        }                
 
         public static List<KnockoutMatchDTO> BuildRoundOf32(List<GroupTable> groups)
         {

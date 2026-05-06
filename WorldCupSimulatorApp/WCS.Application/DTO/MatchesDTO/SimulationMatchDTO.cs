@@ -1,6 +1,6 @@
 ﻿namespace WCS.Application.DTO.MatchesDTO
 {
-    public class AdaptativeSimulationMatchDTO
+    public class SimulationMatchDTO
     {
         public int TeamAID { get; set; }
         public string TeamA { get; set; } = string.Empty;

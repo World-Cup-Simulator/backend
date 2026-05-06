@@ -15,16 +15,17 @@ namespace WCS.Application.Services.Simulators
 
         public const int MaxGoals = 6;
 
-        public List<SimpleMatchResultDTO> SimpleSimulateGroupsStage(List<SimpleSimulationMatchDTO> matches)
+        public List<IMatchResult> SimpleSimulateGroupsStage(List<SimulationMatchDTO> matches)
         {
             ValidateMatches(matches);
 
-            var results = new List<SimpleMatchResultDTO>();
+            var results = new List<IMatchResult>();
 
             foreach (var match in matches)
             {
                 // Compute probabilities once (no recalculation in simple mode)
                 var matchProbability = GetProbabilities(match);
+
                 var winner = _matchProbabilityService.PickRandomOutcome(matchProbability);
                 var result = SimulationMappers.SimpleBuildResult(match, winner, matchProbability);
 
@@ -34,11 +35,11 @@ namespace WCS.Application.Services.Simulators
             return results;
         }
 
-        public List<SimpleMatchResultDTO> SimpleSimulateKnockouts(List<SimpleSimulationMatchDTO> matches)
+        public List<IMatchResult> SimpleSimulateKnockouts(List<SimulationMatchDTO> matches)
         {
             ValidateMatches(matches);
 
-            var results = new List<SimpleMatchResultDTO>();
+            var results = new List<IMatchResult>();
 
             foreach (var match in matches)
             {
@@ -63,11 +64,11 @@ namespace WCS.Application.Services.Simulators
             return results;
         }
 
-        public List<MatchResultDTO> SimpleSimulateGroupsStageWithScores(List<SimpleSimulationMatchDTO> matches)
+        public List<IMatchResult> SimpleSimulateGroupsStageWithScores(List<SimulationMatchDTO> matches)
         {
             ValidateMatches(matches);
 
-            var results = new List<MatchResultDTO>();
+            var results = new List<IMatchResult>();
 
             foreach (var match in matches)
             {
@@ -92,11 +93,11 @@ namespace WCS.Application.Services.Simulators
             return results;
         }
 
-        public List<MatchResultDTO> SimpleSimulateKnockoutsWithScores(List<SimpleSimulationMatchDTO> matches)
+        public List<IMatchResult> SimpleSimulateKnockoutsWithScores(List<SimulationMatchDTO> matches)
         {
             ValidateMatches(matches);
 
-            var results = new List<MatchResultDTO>();
+            var results = new List<IMatchResult>();
 
             foreach (var match in matches)
             {
@@ -131,12 +132,12 @@ namespace WCS.Application.Services.Simulators
             return results;
         }       
 
-        public List<AdaptativeMatchResultDTO> SimulateAdaptativeKnockoutsWithScores(List<AdaptativeSimulationMatchDTO> matches,
+        public List<IMatchResult> SimulateAdaptativeKnockoutsWithScores(List<SimulationMatchDTO> matches,
             List<RatingDataDTO> previousResults)
         {
             ValidateMatches(matches);
 
-            var results = new List<AdaptativeMatchResultDTO>();
+            var results = new List<IMatchResult>();
 
             foreach (var match in matches)
             {
@@ -199,11 +200,21 @@ namespace WCS.Application.Services.Simulators
             return results;
         }
 
-        private MatchProbabilityDTO GetProbabilities(SimpleSimulationMatchDTO match)
+        private MatchProbabilityDTO GetProbabilities(SimulationMatchDTO match)
         {
-            // Compute expected goals (lambda) for both teams based on attack vs defense ratings
-            var lambdaA = _matchProbabilityService.CalculateLambda(match.AAttackRating, match.BDefenseRating);
-            var lambdaB = _matchProbabilityService.CalculateLambda(match.BAttackRating, match.ADefenseRating);
+            // Compute attack/defense ratings based on accumulated stats
+            var aAttackRating = _ratingService.CalculateAttack([], match.AAccumulatedScores,
+                    match.AAccumulatedWeights);
+            var aDefenseRating = _ratingService.CalculateDefense([], match.AAccumulatedPenalties,
+                match.AAccumulatedCount);
+            var bAttackRating = _ratingService.CalculateAttack([], match.BAccumulatedScores,
+                match.BAccumulatedWeights);
+            var bDefenseRating = _ratingService.CalculateDefense([], match.BAccumulatedPenalties,
+                match.BAccumulatedCount);
+
+            // Convert ratings into expected goals (Poisson lambda)
+            var lambdaA = _matchProbabilityService.CalculateLambda(aAttackRating.AttackRating, bDefenseRating.DefenseRating);
+            var lambdaB = _matchProbabilityService.CalculateLambda(bAttackRating.AttackRating, aDefenseRating.DefenseRating);
 
             // Use Poisson model to derive match outcome probabilities up to MaxGoals
             return _matchProbabilityService.CalculateMatchProbabilities(MaxGoals, lambdaA, lambdaB);
@@ -238,7 +249,7 @@ namespace WCS.Application.Services.Simulators
             };
         }
 
-        private AdaptativeRatingsDTO CalculateAdaptativeRatings(AdaptativeSimulationMatchDTO match,
+        private AdaptativeRatingsDTO CalculateAdaptativeRatings(SimulationMatchDTO match,
                 List<RatingDataDTO> aRatingData, List<RatingDataDTO> bRatingData)
         {
             // Compute dynamic (adaptive) attack/defense ratings based on historical data + accumulated stats
