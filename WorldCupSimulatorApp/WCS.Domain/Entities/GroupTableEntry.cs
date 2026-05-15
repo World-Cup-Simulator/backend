@@ -8,6 +8,7 @@
         public int GoalsScored { get; set; }
         public int GoalsConceded { get; set; }
         public int GoalDifference => GoalsScored - GoalsConceded;
+        public int FifaRank { get; set; }
         public double AccumulatedScores { get; set; }
         public double AccumulatedWeights { get; set; }
         public double AccumulatedPenalties { get; set; }

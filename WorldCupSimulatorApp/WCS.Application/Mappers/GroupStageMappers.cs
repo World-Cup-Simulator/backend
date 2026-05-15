@@ -4,7 +4,7 @@ using WCS.Domain.Entities;
 
 namespace WCS.Application.Mappers
 {
-    public class BracketsMappers
+    public class GroupStageMappers
     {
         public static List<SimulationMatchDTO> CreateGroupMatches(List<WorldCupMatch> matches)
         {
