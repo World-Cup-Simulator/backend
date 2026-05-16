@@ -1,12 +1,14 @@
 ﻿using WCS.Application.DTO.BracketsDTO;
 using WCS.Application.DTO.MatchesDTO;
 using WCS.Application.DTO.RatingsDTO;
+using WCS.Application.Services.Ratings;
 using WCS.Domain.Enums;
 
 namespace WCS.Application.Mappers
 {
-    public class KnockoutsMappers
+    public class KnockoutsMappers(IRatingService ratingService) : IKnockoutsMappers
     {
+        private readonly IRatingService _ratingService = ratingService;
         public static List<SimulationMatchDTO> CreateKnockoutsSimulationMatches(List<KnockoutMatchDTO> matches)
         {
             var simulationList = new List<SimulationMatchDTO>();
@@ -58,6 +60,7 @@ namespace WCS.Application.Mappers
                 {                    
                     nextMatch.TeamAID = AActualMatch.TeamAID;
                     nextMatch.TeamA = AActualMatch.TeamA;
+                    nextMatch.TeamAFifaRank = AActualMatch.TeamAFifaRank;
                     nextMatch.AAccumulatedScores = AActualMatch.AAccumulatedScores;
                     nextMatch.AAccumulatedWeights = AActualMatch.AAccumulatedWeights;
                     nextMatch.AAccumulatedPenalties = AActualMatch.AAccumulatedPenalties;
@@ -66,6 +69,7 @@ namespace WCS.Application.Mappers
                 {
                     nextMatch.TeamAID = AActualMatch.TeamBID.Value;
                     nextMatch.TeamA = AActualMatch.TeamB;
+                    nextMatch.TeamAFifaRank = AActualMatch.TeamBFifaRank;
                     nextMatch.AAccumulatedScores = AActualMatch.BAccumulatedScores;
                     nextMatch.AAccumulatedWeights = AActualMatch.BAccumulatedWeights;
                     nextMatch.AAccumulatedPenalties = AActualMatch.BAccumulatedPenalties;
@@ -81,17 +85,19 @@ namespace WCS.Application.Mappers
 
                 if (BResult.Winner == MatchOutcome.WinA)
                 {
-                    nextMatch.TeamAID = BActualMatch.TeamAID;
-                    nextMatch.TeamA = BActualMatch.TeamA;
-                    nextMatch.AAccumulatedScores = BActualMatch.AAccumulatedScores;
-                    nextMatch.AAccumulatedWeights = BActualMatch.AAccumulatedWeights;
-                    nextMatch.AAccumulatedPenalties = BActualMatch.AAccumulatedPenalties;
-                    nextMatch.AAccumulatedCount = BActualMatch.AAccumulatedCount;
+                    nextMatch.TeamBID = BActualMatch.TeamAID;
+                    nextMatch.TeamB = BActualMatch.TeamA;
+                    nextMatch.TeamBFifaRank = BActualMatch.TeamAFifaRank;
+                    nextMatch.BAccumulatedScores = BActualMatch.AAccumulatedScores;
+                    nextMatch.BAccumulatedWeights = BActualMatch.AAccumulatedWeights;
+                    nextMatch.BAccumulatedPenalties = BActualMatch.AAccumulatedPenalties;
+                    nextMatch.BAccumulatedCount = BActualMatch.AAccumulatedCount;
                 }
                 else
                 {
                     nextMatch.TeamBID = BActualMatch.TeamBID.Value;
                     nextMatch.TeamB = BActualMatch.TeamB;
+                    nextMatch.TeamBFifaRank = BActualMatch.TeamBFifaRank;
                     nextMatch.BAccumulatedScores = BActualMatch.BAccumulatedScores;
                     nextMatch.BAccumulatedWeights = BActualMatch.BAccumulatedWeights;
                     nextMatch.BAccumulatedPenalties = BActualMatch.BAccumulatedPenalties;
@@ -136,6 +142,47 @@ namespace WCS.Application.Mappers
 
                 previousResults.Add(previousResultA);
                 previousResults.Add(previousResultB);
+            }
+
+            return previousResults;
+        }
+
+        public List<RatingDataDTO> CreatePreviousKnockoutsResults (List<KnockoutMatchDTO> matches, List<AdaptativeMatchResultDTO> results)
+        {
+            var previousResults = new List<RatingDataDTO>();
+            
+            foreach (var result in results)
+            {
+                var previousResult = new RatingDataDTO
+                {
+                    TeamID = result.TeamAID,
+                    Date = DateOnly.FromDateTime(DateTime.Now),
+                    Competition = Competition.WorldCup,
+                    Stage = Stage.GroupStage
+                };
+
+                var actualMatch = matches
+                    .First(m => m.TeamAID == result.TeamAID);
+
+                if (result.Winner == MatchOutcome.WinA)
+                {
+                    previousResult.TeamID = result.TeamAID;
+                    previousResult.GoalsScored = result.GoalsA;
+                    previousResult.GoalsConceded = result.GoalsB;
+                    previousResult.OpponentFifaRank = actualMatch.TeamBFifaRank;
+                    var bRating = _ratingService.CalculateAttack([], actualMatch.BAccumulatedScores, actualMatch.BAccumulatedWeights);
+                    previousResult.OpponentAttackRating = bRating.AttackRating;
+                } else
+                {
+                    previousResult.TeamID = result.TeamBID;
+                    previousResult.GoalsScored = result.GoalsB;
+                    previousResult.GoalsConceded = result.GoalsA;
+                    previousResult.OpponentFifaRank = actualMatch.TeamAFifaRank;
+                    var aRating = _ratingService.CalculateAttack([], actualMatch.AAccumulatedScores, actualMatch.AAccumulatedWeights);
+                    previousResult.OpponentAttackRating = aRating.AttackRating;
+                }
+
+                previousResults.Add(previousResult);
             }
 
             return previousResults;

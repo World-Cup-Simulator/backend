@@ -9,12 +9,14 @@
         public int NextMatchKey { get; set; }
         public int TeamAID { get; set; }
         public string TeamA { get; set; } = string.Empty;
+        public int TeamAFifaRank { get; set; }
         public double AAccumulatedScores { get; set; }
         public double AAccumulatedWeights { get; set; }
         public double AAccumulatedPenalties { get; set; }
         public int AAccumulatedCount { get; set; }
         public int? TeamBID { get; set; }
         public string TeamB { get; set; } = string.Empty;
+        public int TeamBFifaRank { get; set; }
         public double BAccumulatedScores { get; set; }
         public double BAccumulatedWeights { get; set; }
         public double BAccumulatedPenalties { get; set; }
