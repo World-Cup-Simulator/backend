@@ -19,263 +19,300 @@ namespace WCS.Application.Services.Simulators
         {
             ValidateMatches(matches);
 
-            var results = new List<IMatchResult>();
-
-            foreach (var match in matches)
+            return ProcessMatches(matches, match =>
             {
-                // Compute probabilities once (no recalculation in simple mode)
-                var matchProbability = GetProbabilities(match);
-
-                var winner = _matchProbabilityService.PickRandomOutcome(matchProbability);
-                var result = SimulationMappers.SimpleBuildResult(match, winner, matchProbability);
-
-                results.Add(result);
-            }
-
-            return results;
+                var probabilities = GetMatchProbabilities(match);
+                var outcome = _matchProbabilityService.PickRandomOutcome(probabilities);
+                return SimulationMappers.SimpleBuildResult(match, outcome, probabilities);
+            });
         }
 
         public List<IMatchResult> SimpleSimulateKnockouts(List<SimulationMatchDTO> matches)
         {
             ValidateMatches(matches);
 
-            var results = new List<IMatchResult>();
-
-            foreach (var match in matches)
+            return ProcessMatches(matches, match =>
             {
-                var matchProbability = GetProbabilities(match);
-                var winner = _matchProbabilityService.PickRandomOutcome(matchProbability);
+                var probabilities = GetMatchProbabilities(match);
+                var outcome = _matchProbabilityService.PickRandomOutcome(probabilities);
 
-                var result = SimulationMappers.SimpleBuildResult(match, winner, matchProbability);
-
-                // Knockout stages cannot end in a draw
-                if (winner == MatchOutcome.Draw)
+                // Early return: knockout stages cannot end in a draw
+                if (outcome == MatchOutcome.Draw)
                 {
-                    var decider = PickKnockoutWinner(matchProbability.WinA, matchProbability.WinB);
-                    matchProbability.WinA = decider.AProbability;
-                    matchProbability.WinB = decider.BProbability;
-                    matchProbability.Draw = 0;
-                    result = SimulationMappers.SimpleBuildResult(match, decider.MatchOutcome, matchProbability);
+                    return ResolveKnockoutDrawFromOutcome(match, probabilities);
                 }
 
-                results.Add(result);
-            }
-
-            return results;
+                return SimulationMappers.SimpleBuildResult(match, outcome, probabilities);
+            });
         }
 
         public List<IMatchResult> SimpleSimulateGroupsStageWithScores(List<SimulationMatchDTO> matches)
         {
             ValidateMatches(matches);
 
-            var results = new List<IMatchResult>();
-
-            foreach (var match in matches)
+            return ProcessMatches(matches, match =>
             {
-                // Compute probabilities once (no recalculation in simple mode)
-                var matchProbability = GetProbabilities(match);
+                var probabilities = GetMatchProbabilities(match);
+                var matchScore = _matchProbabilityService.PickRandomScore(probabilities.Scores);
 
-                // Randomly select a score based on Poisson distribution
-                var score = _matchProbabilityService.PickRandomScore(matchProbability.Scores);
-
-                var result = SimulationMappers.BuildResult(match, score, matchProbability);
-
-                // If score is tied, explicitly mark as draw
-                if (score.GoalsA == score.GoalsB)
-                {
-                    result.Winner = MatchOutcome.Draw;
-                    result.OutcomeProbability = matchProbability.Draw;
-                }
-
-                results.Add(result);
-            }
-
-            return results;
+                return SimulationMappers.BuildResult(match, matchScore, probabilities);
+            });
         }
 
         public List<IMatchResult> SimpleSimulateKnockoutsWithScores(List<SimulationMatchDTO> matches)
         {
             ValidateMatches(matches);
 
-            var results = new List<IMatchResult>();
-
-            foreach (var match in matches)
+            return ProcessMatches(matches, match =>
             {
-                var matchProbability = GetProbabilities(match);
-                var score = _matchProbabilityService.PickRandomScore(matchProbability.Scores);                               
+                var probabilities = GetMatchProbabilities(match);
+                var matchScore = _matchProbabilityService.PickRandomScore(probabilities.Scores);
 
-                var result = SimulationMappers.BuildResult(match, score, matchProbability);
-
-                // Knockout stages cannot end in a draw
-                if (score.GoalsA == score.GoalsB)
+                // Early return: handle knockout draws via penalties
+                if (matchScore.GoalsA == matchScore.GoalsB)
                 {
-                    // Decide winner via penalties
-                    var winner = PickKnockoutWinner(matchProbability.WinA, matchProbability.WinB);
-
-                    result.Winner = winner.MatchOutcome;
-
-                    if (winner.MatchOutcome == MatchOutcome.WinA)
-                    {
-                        // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
-                        result.OutcomeProbability = winner.AProbability;
-                        result.DecidedByPenalties = true;
-                    }
-                    else
-                    {
-                        // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
-                        result.OutcomeProbability = winner.BProbability;
-                        result.DecidedByPenalties = true;
-                    }
+                    return ResolveKnockoutDrawFromScore(match, matchScore, probabilities);
                 }
-                results.Add(result);
-            }
-            return results;
-        }       
 
-        public List<IMatchResult> SimulateAdaptativeKnockoutsWithScores(List<SimulationMatchDTO> matches,
-            List<RatingDataDTO> previousResults)
+                return SimulationMappers.BuildResult(match, matchScore, probabilities);
+            });
+        }
+
+        public List<IMatchResult> SimulateAdaptativeKnockoutsWithScores(List<SimulationMatchDTO> matches, List<RatingDataDTO> previousResults)
         {
             ValidateMatches(matches);
+            ValidatePreviousResults(previousResults);
 
-            var results = new List<IMatchResult>();
+            return ProcessMatches(matches, match =>
+            {
+                var adaptiveData = CalculateAdaptiveMatchData(match, previousResults);
+                var probabilities = _matchProbabilityService.CalculateMatchProbabilities(
+                    MaxGoals, adaptiveData.LambdaA, adaptiveData.LambdaB);
+                var matchScore = _matchProbabilityService.PickRandomScore(probabilities.Scores);
+
+                return BuildAdaptiveResult(match, matchScore, probabilities, adaptiveData);
+            });
+        }
+
+        // Generic match processing pipeline that applies a processor function to each match.
+        private static List<IMatchResult> ProcessMatches<TInput, TResult>(List<TInput> matches, Func<TInput, TResult> processor)
+            where TResult : IMatchResult
+        {
+            var results = new List<IMatchResult>(matches.Count);
 
             foreach (var match in matches)
             {
-                var result = new AdaptativeMatchResultDTO
-                {
-                    TeamA = match.TeamA,
-                    TeamB = match.TeamB,
-                };
-
-                // Extract previous data for each team
-                var aRatingData = previousResults.Where(r => r.TeamID == match.TeamAID).ToList();
-                var bRatingData = previousResults.Where(r => r.TeamID == match.TeamBID).ToList();
-
-                // Compute adaptive ratings and expected goals (lambda) based on past performance
-                var AdptRatings = CalculateAdaptativeRatings(match, aRatingData, bRatingData);
-
-                // Generate match probabilities using updated lambdas (Poisson model)
-                var matchProbability = _matchProbabilityService.CalculateMatchProbabilities(MaxGoals, AdptRatings.LambdaA,
-                    AdptRatings.LambdaB);
-
-                // Sample a score from the probability distribution
-                var score = _matchProbabilityService.PickRandomScore(matchProbability.Scores);
-
-                result.GoalsA = score.GoalsA;
-                result.GoalsB = score.GoalsB;
-                result.ScoreProbability = score.Probability;                              
-
-                if (score.GoalsA > score.GoalsB)
-                {
-                    // Direct win, use original model probability
-                    SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, match.TeamBID,
-                        matchProbability.WinA, false, AdptRatings.AAttackRating, AdptRatings.ADefenseRating);
-                }
-                else if (score.GoalsB > score.GoalsA)
-                {
-                    // Direct win, use original model probability
-                    SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamAID, match.TeamBID,
-                        matchProbability.WinB, false, AdptRatings.BAttackRating, AdptRatings.BDefenseRating);
-                }
-                else
-                {
-                    // Decide winner via penalties
-                    var winner = PickKnockoutWinner(matchProbability.WinA, matchProbability.WinB);
-
-                    if (winner.MatchOutcome == MatchOutcome.WinA)
-                    {
-                        // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
-                        SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinA, match.TeamAID, match.TeamBID,
-                            winner.AProbability, true, AdptRatings.AAttackRating, AdptRatings.ADefenseRating);
-                    }
-                    else
-                    {
-                        // In knockout draws, probability is normalized between A and B (penalty shootout scenario)
-                        SimulationMappers.AssignWinnerAccumulatedData(result, MatchOutcome.WinB, match.TeamAID, match.TeamBID,
-                            winner.BProbability, true, AdptRatings.BAttackRating, AdptRatings.BDefenseRating);
-                    }
-                }
-                results.Add(result);
+                results.Add(processor(match));
             }
+
             return results;
         }
 
-        private MatchProbabilityDTO GetProbabilities(SimulationMatchDTO match)
+        // Calculates match probabilities based on team ratings.
+        private MatchProbabilityDTO GetMatchProbabilities(SimulationMatchDTO match)
         {
             // Compute attack/defense ratings based on accumulated stats
-            var aAttackRating = _ratingService.CalculateAttack([], match.AAccumulatedScores,
-                    match.AAccumulatedWeights);
-            var aDefenseRating = _ratingService.CalculateDefense([], match.AAccumulatedPenalties,
-                match.AAccumulatedCount);
-            var bAttackRating = _ratingService.CalculateAttack([], match.BAccumulatedScores,
-                match.BAccumulatedWeights);
-            var bDefenseRating = _ratingService.CalculateDefense([], match.BAccumulatedPenalties,
-                match.BAccumulatedCount);
+            var teamAAttack = _ratingService.CalculateAttack(
+                [], match.AAccumulatedScores, match.AAccumulatedWeights);
+            var teamADefense = _ratingService.CalculateDefense(
+                [], match.AAccumulatedPenalties, match.AAccumulatedCount);
+            var teamBAttack = _ratingService.CalculateAttack(
+                [], match.BAccumulatedScores, match.BAccumulatedWeights);
+            var teamBDefense = _ratingService.CalculateDefense(
+                [], match.BAccumulatedPenalties, match.BAccumulatedCount);
 
             // Convert ratings into expected goals (Poisson lambda)
-            var lambdaA = _matchProbabilityService.CalculateLambda(aAttackRating.AttackRating, bDefenseRating.DefenseRating);
-            var lambdaB = _matchProbabilityService.CalculateLambda(bAttackRating.AttackRating, aDefenseRating.DefenseRating);
+            var lambdaA = _matchProbabilityService.CalculateLambda(
+                teamAAttack.AttackRating, teamBDefense.DefenseRating);
+            var lambdaB = _matchProbabilityService.CalculateLambda(
+                teamBAttack.AttackRating, teamADefense.DefenseRating);
 
-            // Use Poisson model to derive match outcome probabilities up to MaxGoals
+            // Use Poisson model to derive match outcome probabilities
             return _matchProbabilityService.CalculateMatchProbabilities(MaxGoals, lambdaA, lambdaB);
         }
 
-        private static void ValidateMatches<T>(List<T> matches)
+        // Calculates adaptive ratings and expected goals based on historical performance data.
+        private AdaptiveMatchData CalculateAdaptiveMatchData(SimulationMatchDTO match, List<RatingDataDTO> previousResults)
         {
-            if (matches == null || matches.Count == 0)
-                throw new ArgumentException("Matches list is empty.");
+            // Extract previous data for each team
+            var teamAHistory = previousResults
+                .Where(r => r.TeamID == match.TeamAID)
+                .ToList();
+            var teamBHistory = previousResults
+                .Where(r => r.TeamID == match.TeamBID)
+                .ToList();
+
+            // Compute dynamic (adaptive) attack/defense ratings
+            var teamAAttack = _ratingService.CalculateAttack(
+                teamAHistory, match.AAccumulatedScores, match.AAccumulatedWeights);
+            var teamADefense = _ratingService.CalculateDefense(
+                teamAHistory, match.AAccumulatedPenalties, match.AAccumulatedCount);
+            var teamBAttack = _ratingService.CalculateAttack(
+                teamBHistory, match.BAccumulatedScores, match.BAccumulatedWeights);
+            var teamBDefense = _ratingService.CalculateDefense(
+                teamBHistory, match.BAccumulatedPenalties, match.BAccumulatedCount);
+
+            // Convert ratings into expected goals (Poisson lambda)
+            var lambdaA = _matchProbabilityService.CalculateLambda(
+                teamAAttack.AttackRating, teamBDefense.DefenseRating);
+            var lambdaB = _matchProbabilityService.CalculateLambda(
+                teamBAttack.AttackRating, teamADefense.DefenseRating);
+
+            return new AdaptiveMatchData(
+                lambdaA, lambdaB,
+                teamAAttack, teamADefense,
+                teamBAttack, teamBDefense);
         }
 
-        private static KnockoutWinnerDTO PickKnockoutWinner(double winA, double winB)
+        // Resolves a knockout draw when the initial outcome is a Draw.
+        // Normalizes probabilities between Team A and Team B win.
+        private static SimpleMatchResultDTO ResolveKnockoutDrawFromOutcome(SimulationMatchDTO match, MatchProbabilityDTO probabilities)
+        {
+            var normalizedWinner = ResolveKnockoutWinner(probabilities.WinA, probabilities.WinB);
+
+            var resolvedProbabilities = new MatchProbabilityDTO
+            {
+                WinA = normalizedWinner.AProbability,
+                WinB = normalizedWinner.BProbability,
+                Draw = 0,
+                Scores = probabilities.Scores
+            };
+
+            return SimulationMappers.SimpleBuildResult(match, normalizedWinner.MatchOutcome, resolvedProbabilities);
+        }
+
+        // Resolves a knockout draw when the score is tied.
+        // Determines winner via penalty shootout simulation.
+        private static MatchResultDTO ResolveKnockoutDrawFromScore(SimulationMatchDTO match, ScoreProbabilityDTO matchScore,
+            MatchProbabilityDTO probabilities)
+        {
+            var penaltyWinner = ResolveKnockoutWinner(probabilities.WinA, probabilities.WinB);
+
+            var matchResult = SimulationMappers.BuildResult(match, matchScore, probabilities);
+
+            matchResult.Winner = penaltyWinner.MatchOutcome;
+
+            matchResult.OutcomeProbability = penaltyWinner.MatchOutcome == MatchOutcome.WinA
+                ? penaltyWinner.AProbability
+                : penaltyWinner.BProbability;
+
+            matchResult.DecidedByPenalties = true;
+
+            return matchResult;
+        }
+
+        // Determines a knockout winner by normalizing win probabilities.
+        private static KnockoutWinnerDTO ResolveKnockoutWinner(double winA, double winB)
         {
             if (winA == 0 && winB == 0)
-                throw new ArgumentException("Probabilities cannot be 0.");
+            {
+                throw new ArgumentException(
+                    "Cannot resolve knockout winner: both WinA and WinB probabilities are zero.", nameof(winA));
+            }
 
-            // Normalize probabilities to ensure they sum to 1
             double totalProbability = winA + winB;
-            double AProbability = winA / totalProbability;
-            double BProbability = winB / totalProbability;
+            double normalizedA = winA / totalProbability;
+            double normalizedB = winB / totalProbability;
 
-            // Random draw to decide winner based on normalized probabilities
             double roll = Random.Shared.NextDouble();
-
-            var winner = roll <= AProbability ? MatchOutcome.WinA : MatchOutcome.WinB;
+            var winner = roll <= normalizedA ? MatchOutcome.WinA : MatchOutcome.WinB;
 
             return new KnockoutWinnerDTO
             {
                 MatchOutcome = winner,
-                AProbability = AProbability,
-                BProbability = BProbability,
+                AProbability = normalizedA,
+                BProbability = normalizedB,
             };
         }
 
-        private AdaptativeRatingsDTO CalculateAdaptativeRatings(SimulationMatchDTO match,
-                List<RatingDataDTO> aRatingData, List<RatingDataDTO> bRatingData)
+        // Builds an adaptive match result with proper winner assignment.
+        private static AdaptativeMatchResultDTO BuildAdaptiveResult(SimulationMatchDTO match, ScoreProbabilityDTO matchScore,
+            MatchProbabilityDTO probabilities, AdaptiveMatchData adaptiveData)
         {
-            // Compute dynamic (adaptive) attack/defense ratings based on historical data + accumulated stats
-            var aAttackRating = _ratingService.CalculateAttack(aRatingData, match.AAccumulatedScores,
-                    match.AAccumulatedWeights);
-            var aDefenseRating = _ratingService.CalculateDefense(aRatingData, match.AAccumulatedPenalties,
-                match.AAccumulatedCount);
-            var bAttackRating = _ratingService.CalculateAttack(bRatingData, match.BAccumulatedScores,
-                match.BAccumulatedWeights);
-            var bDefenseRating = _ratingService.CalculateDefense(bRatingData, match.BAccumulatedPenalties,
-                match.BAccumulatedCount);
-
-            // Convert ratings into expected goals (Poisson lambda)
-            var lambdaA = _matchProbabilityService.CalculateLambda(aAttackRating.AttackRating, bDefenseRating.DefenseRating);
-            var lambdaB = _matchProbabilityService.CalculateLambda(bAttackRating.AttackRating, aDefenseRating.DefenseRating);
-
-            // Return both lambdas and full rating breakdown for later use (e.g., calculate match probabilities)
-            return new AdaptativeRatingsDTO
+            var baseResult = new AdaptativeMatchResultDTO
             {
-                LambdaA = lambdaA,
-                LambdaB = lambdaB,
-                AAttackRating = aAttackRating,
-                ADefenseRating = aDefenseRating,
-                BAttackRating = bAttackRating,
-                BDefenseRating = bDefenseRating
+                TeamA = match.TeamA,
+                TeamB = match.TeamB,
+                GoalsA = matchScore.GoalsA,
+                GoalsB = matchScore.GoalsB,
+                ScoreProbability = matchScore.Probability
             };
-        }        
+
+            // Early return: Team A wins directly
+            if (matchScore.GoalsA > matchScore.GoalsB)
+            {
+                return CreateAdaptativeResultWithBase(
+                    baseResult, MatchOutcome.WinA, match.TeamAID, match.TeamBID,
+                    probabilities.WinA, false, adaptiveData.TeamAAttack, adaptiveData.TeamADefense);
+            }
+
+            // Early return: Team B wins directly
+            if (matchScore.GoalsB > matchScore.GoalsA)
+            {
+                return CreateAdaptativeResultWithBase(
+                    baseResult, MatchOutcome.WinB, match.TeamAID, match.TeamBID,
+                    probabilities.WinB, false, adaptiveData.TeamBAttack, adaptiveData.TeamBDefense);
+            }
+
+            // Draw: resolve via penalties
+            var penaltyWinner = ResolveKnockoutWinner(probabilities.WinA, probabilities.WinB);
+            var isTeamAWinner = penaltyWinner.MatchOutcome == MatchOutcome.WinA;
+
+            return CreateAdaptativeResultWithBase(
+                baseResult,
+                penaltyWinner.MatchOutcome,
+                match.TeamAID,
+                match.TeamBID,
+                isTeamAWinner ? penaltyWinner.AProbability : penaltyWinner.BProbability,
+                true,
+                isTeamAWinner ? adaptiveData.TeamAAttack : adaptiveData.TeamBAttack,
+                isTeamAWinner ? adaptiveData.TeamADefense : adaptiveData.TeamBDefense);
+        }
+
+
+        // Helper to merge base result data with winner-specific adaptive data.
+        private static AdaptativeMatchResultDTO CreateAdaptativeResultWithBase(AdaptativeMatchResultDTO baseResult, MatchOutcome winner,
+            int teamAID, int teamBID, double probability, bool decidedByPenalties, AttackRatingDTO winnerAttack, DefenseRatingDTO winnerDefense)
+        {
+            var result = SimulationMappers.BuildAdaptativeResult(winner, teamAID, teamBID, probability, decidedByPenalties,
+                winnerAttack, winnerDefense);
+
+            result.TeamA = baseResult.TeamA;
+            result.TeamB = baseResult.TeamB;
+            result.GoalsA = baseResult.GoalsA;
+            result.GoalsB = baseResult.GoalsB;
+            result.ScoreProbability = baseResult.ScoreProbability;
+
+            return result;
+        }
+
+        private static void ValidateMatches<T>(List<T> matches)
+        {
+            if (matches is null)
+            {
+                throw new ArgumentNullException(nameof(matches), "Matches list cannot be null.");
+            }
+            if (matches.Count == 0)
+            {
+                throw new ArgumentException("Matches list is empty.", nameof(matches));
+            }
+        }
+
+        private static void ValidatePreviousResults(List<RatingDataDTO> previousResults)
+        {
+            if (previousResults is null)
+            {
+                throw new ArgumentNullException(nameof(previousResults), "Previous results cannot be null.");
+            }
+        }
+
+        // Immutable container for adaptive match calculation data.
+        private readonly record struct AdaptiveMatchData(
+            double LambdaA,
+            double LambdaB,
+            AttackRatingDTO TeamAAttack,
+            DefenseRatingDTO TeamADefense,
+            AttackRatingDTO TeamBAttack,
+            DefenseRatingDTO TeamBDefense);
     }
 }

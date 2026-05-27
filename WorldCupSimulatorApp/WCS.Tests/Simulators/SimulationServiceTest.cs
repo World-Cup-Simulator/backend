@@ -27,19 +27,21 @@ namespace WCS.Tests.Simulators
         public void SimpleSimulateGroupsStage_ShouldThrowException_WhenMatchesListIsEmpty()
         {
             Action act = () => _service.SimpleSimulateGroupsStage([]);
-            act.Should().Throw<ArgumentException>().WithMessage("Matches list is empty.");
+            act.Should().Throw<ArgumentException>().WithParameterName("matches").WithMessage("Matches list is empty.*");
         }
 
         [Fact]
         public void SimpleSimulateGroupsStage_ShouldReturnCorrectCountAndData_WhenMatchesAreValid()
         {
-            var matches = new List<SimpleSimulationMatchDTO>
+            var matches = new List<SimulationMatchDTO>
             {
                 new() { TeamAID = 1, TeamA = "Argentina", TeamBID = 2, TeamB = "Arabia Saudita" },
                 new() { TeamAID = 3, TeamA = "México", TeamBID = 4, TeamB = "Polonia" }
             };
 
             // Configure the mock to return generic values and avoid failures
+            SetupRatingMocks();
+
             _probMock.Setup(p => p.CalculateLambda(It.IsAny<double>(), It.IsAny<double>()))
                      .Returns(1.5);
 
@@ -65,16 +67,18 @@ namespace WCS.Tests.Simulators
         public void SimpleSimulateKnockouts_ShouldThrowException_WhenMatchesListIsEmpty()
         {
             Action act = () => _service.SimpleSimulateKnockouts([]);
-            act.Should().Throw<ArgumentException>().WithMessage("Matches list is empty.");
+            act.Should().Throw<ArgumentException>().WithParameterName("matches").WithMessage("Matches list is empty.*");
         }
 
         [Fact]
         public void SimpleSimulateKnockouts_ShouldReturnWinnerDirectly_WhenNoDrawOccurs()
         {
-            var matches = new List<SimpleSimulationMatchDTO> {
+            var matches = new List<SimulationMatchDTO> {
                 new() { TeamAID = 1, TeamA = "Argentina", TeamBID = 2, TeamB = "Arabia Saudita" },
                 new() { TeamAID = 3, TeamA = "México", TeamBID = 4, TeamB = "Polonia" }
             };
+
+            SetupRatingMocks();
 
             _probMock.Setup(p => p.CalculateLambda(It.IsAny<double>(), It.IsAny<double>())).Returns(1.0);
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
@@ -95,12 +99,14 @@ namespace WCS.Tests.Simulators
         [Fact]
         public void SimpleSimulateKnockouts_ShouldUseDecider_WhenInitialOutcomeIsDraw()
         {
-            var matches = new List<SimpleSimulationMatchDTO> {
+            var matches = new List<SimulationMatchDTO> {
                 new() { TeamAID = 1, TeamA = "Fra", TeamBID = 2, TeamB = "Eng" }
             };
 
             // Initial probabilities: 40% Team A win, 40% Team B win, 20% draw
             var initialProb = new MatchProbabilityDTO { WinA = 0.4, WinB = 0.4, Draw = 0.2 };
+
+            SetupRatingMocks();
 
             _probMock.Setup(p => p.CalculateLambda(It.IsAny<double>(), It.IsAny<double>())).Returns(1.0);
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
@@ -123,18 +129,20 @@ namespace WCS.Tests.Simulators
         public void SimpleSimulateGroupsStageWithScores_ShouldThrowException_WhenMatchesListIsEmpty()
         {
             Action act = () => _service.SimpleSimulateGroupsStageWithScores([]);
-            act.Should().Throw<ArgumentException>().WithMessage("Matches list is empty.");
+            act.Should().Throw<ArgumentException>().WithParameterName("matches").WithMessage("Matches list is empty.*");
         }
 
         [Fact]
         public void SimpleSimulateGroupsStageWithScores_ShouldReturnWinnerA_WhenGoalsAIsGreater()
         {
-            var matches = new List<SimpleSimulationMatchDTO> { 
+            var matches = new List<SimulationMatchDTO> { 
                 new() { TeamAID = 1, TeamA = "Argentina", TeamBID = 2, TeamB = "Brasil" }
             };
 
             var fakeProb = new MatchProbabilityDTO { WinA = 0.6, WinB = 0.2, Draw = 0.2, Scores = [] };
             var winningScore = new ScoreProbabilityDTO { GoalsA = 2, GoalsB = 1, Probability = 0.1 };
+
+            SetupRatingMocks();
 
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
                      .Returns(fakeProb);
@@ -142,8 +150,9 @@ namespace WCS.Tests.Simulators
             _probMock.Setup(p => p.PickRandomScore(It.IsAny<List<ScoreProbabilityDTO>>()))
                      .Returns(winningScore);
 
-            var result = _service.SimpleSimulateGroupsStageWithScores(matches).First();
+            var result = _service.SimpleSimulateGroupsStageWithScores(matches).First() as MatchResultDTO;
 
+            result.Should().NotBeNull();
             result.Winner.Should().Be(MatchOutcome.WinA);
             result.OutcomeProbability.Should().Be(0.6); // Total win probability for Team A
             result.ScoreProbability.Should().Be(0.1);   // Specific probability of the 2-1 score
@@ -152,12 +161,14 @@ namespace WCS.Tests.Simulators
         [Fact]
         public void SimpleSimulateGroupsStageWithScores_ShouldReturnDraw_WhenScoreIsEqual()
         {
-            var matches = new List<SimpleSimulationMatchDTO> {
+            var matches = new List<SimulationMatchDTO> {
                 new() { TeamAID = 1, TeamA = "Arg", TeamBID = 2, TeamB = "Bra" }
             };
 
             var fakeProb = new MatchProbabilityDTO { WinA = 0.4, WinB = 0.3, Draw = 0.3, Scores = [] };
             var equalScore = new ScoreProbabilityDTO { GoalsA = 1, GoalsB = 1, Probability = 0.15 };
+
+            SetupRatingMocks();
 
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
                      .Returns(fakeProb);
@@ -166,8 +177,9 @@ namespace WCS.Tests.Simulators
             _probMock.Setup(p => p.PickRandomScore(It.IsAny<List<ScoreProbabilityDTO>>()))
                      .Returns(equalScore);
 
-            var result = _service.SimpleSimulateGroupsStageWithScores(matches).First();
+            var result = _service.SimpleSimulateGroupsStageWithScores(matches).First() as MatchResultDTO;
 
+            result.Should().NotBeNull();
             result.Winner.Should().Be(MatchOutcome.Draw);
             result.GoalsA.Should().Be(1);
             result.GoalsB.Should().Be(1);
@@ -177,13 +189,15 @@ namespace WCS.Tests.Simulators
         [Fact]
         public void SimpleSimulateGroupsStageWithScores_ShouldProcessAllMatches()
         {
-            var matches = new List<SimpleSimulationMatchDTO> {
+            var matches = new List<SimulationMatchDTO> {
                 new() { TeamAID = 1, TeamA = "Arg", TeamBID = 2, TeamB = "Bra" },
                 new() { TeamAID = 4, TeamA = "Holanda", TeamBID = 2, TeamB = "Bolivia" },
             };
 
             var fakeProb = new MatchProbabilityDTO { WinA = 0.6, WinB = 0.2, Draw = 0.2, Scores = [] };
             var winningScore = new ScoreProbabilityDTO { GoalsA = 2, GoalsB = 1, Probability = 0.1 };
+
+            SetupRatingMocks();
 
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
                      .Returns(fakeProb);
@@ -203,26 +217,29 @@ namespace WCS.Tests.Simulators
         public void SimpleSimulateKnockoutsWithScores_ShouldThrowException_WhenMatchesListIsEmpty()
         {
             Action act = () => _service.SimpleSimulateKnockoutsWithScores([]);
-            act.Should().Throw<ArgumentException>().WithMessage("Matches list is empty.");
+            act.Should().Throw<ArgumentException>().WithParameterName("matches").WithMessage("Matches list is empty.*");
         }
 
         [Fact]
         public void SimpleSimulateKnockoutsWithScores_ShouldNotUsePenalties_WhenThereIsAWinner()
         {
-            var matches = new List<SimpleSimulationMatchDTO> {
+            var matches = new List<SimulationMatchDTO> {
                 new() { TeamAID = 1, TeamA = "Argentina", TeamBID = 2, TeamB = "Brasil" }
             };
 
             var winningScore = new ScoreProbabilityDTO { GoalsA = 3, GoalsB = 0, Probability = 0.1 };
             var fakeProb = new MatchProbabilityDTO { WinA = 0.8, WinB = 0.1, Draw = 0.1, Scores = [] };
 
+            SetupRatingMocks();
+
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
                      .Returns(fakeProb);
             _probMock.Setup(p => p.PickRandomScore(It.IsAny<List<ScoreProbabilityDTO>>()))
                      .Returns(winningScore);
 
-            var result = _service.SimpleSimulateKnockoutsWithScores(matches).First();
+            var result = _service.SimpleSimulateKnockoutsWithScores(matches).First() as MatchResultDTO;
 
+            result.Should().NotBeNull();
             result.Winner.Should().Be(MatchOutcome.WinA);
             result.DecidedByPenalties.Should().BeFalse();
             result.OutcomeProbability.Should().Be(0.8);
@@ -231,12 +248,14 @@ namespace WCS.Tests.Simulators
         [Fact]
         public void SimpleSimulateKnockoutsWithScores_ShouldDecideByPenalties_WhenScoreIsDraw()
         {
-            var matches = new List<SimpleSimulationMatchDTO> {
+            var matches = new List<SimulationMatchDTO> {
                 new() { TeamAID = 1, TeamA = "Arg", TeamBID = 2, TeamB = "Fra" }
             };
 
             var fakeProb = new MatchProbabilityDTO { WinA = 0.5, WinB = 0.5, Draw = 0.1, Scores = []};
             var drawScore = new ScoreProbabilityDTO { GoalsA = 2, GoalsB = 2, Probability = 0.05 };
+
+            SetupRatingMocks();
 
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
                      .Returns(fakeProb);
@@ -244,8 +263,9 @@ namespace WCS.Tests.Simulators
             _probMock.Setup(p => p.PickRandomScore(It.IsAny<List<ScoreProbabilityDTO>>()))
                      .Returns(drawScore);
 
-            var result = _service.SimpleSimulateKnockoutsWithScores(matches).First();
+            var result = _service.SimpleSimulateKnockoutsWithScores(matches).First() as MatchResultDTO;
 
+            result.Should().NotBeNull();
             result.GoalsA.Should().Be(2);
             result.GoalsB.Should().Be(2);
             result.Winner.Should().NotBe(MatchOutcome.Draw); // Draws are not allowed in knockout stages
@@ -257,13 +277,15 @@ namespace WCS.Tests.Simulators
         [Fact]
         public void SimpleSimulateKnockoutsWithScores_ShouldProcessAllMatches()
         {
-            var matches = new List<SimpleSimulationMatchDTO> {
+            var matches = new List<SimulationMatchDTO> {
                 new() { TeamAID = 1, TeamA = "Arg", TeamBID = 2, TeamB = "Bra" },
                 new() { TeamAID = 4, TeamA = "Holanda", TeamBID = 2, TeamB = "Bolivia" },
             };
 
             var winningScore = new ScoreProbabilityDTO { GoalsA = 3, GoalsB = 0, Probability = 0.1 };
             var fakeProb = new MatchProbabilityDTO { WinA = 0.8, WinB = 0.1, Draw = 0.1, Scores = [] };
+
+            SetupRatingMocks();
 
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
                      .Returns(fakeProb);
@@ -282,13 +304,13 @@ namespace WCS.Tests.Simulators
         public void SimulateAdaptativeKnockoutsWithScores_ShouldThrowException_WhenMatchesListIsEmpty()
         {
             Action act = () => _service.SimulateAdaptativeKnockoutsWithScores([], []);
-            act.Should().Throw<ArgumentException>().WithMessage("Matches list is empty.");
+            act.Should().Throw<ArgumentException>().WithParameterName("matches").WithMessage("Matches list is empty.*");
         }
 
         [Fact]
         public void SimulateAdaptativeKnockoutsWithScores_ShouldUseRatingsFromService()
         {
-            var matches = new List<AdaptativeSimulationMatchDTO> {
+            var matches = new List<SimulationMatchDTO> {
                 new() { TeamAID = 1, TeamA = "Arg", TeamBID = 2, TeamB = "Ger" }
             };
 
@@ -297,6 +319,8 @@ namespace WCS.Tests.Simulators
             // Configure RatingService to return specific ratings
             var expectedAttack = new AttackRatingDTO { AttackRating = 2.5, AccumulatedScores = 100 };
             var expectedDefense = new DefenseRatingDTO { DefenseRating = 1.0, AccumulatedCount = 5 };
+
+            SetupRatingMocks();
 
             _ratingMock.Setup(r => r.CalculateAttack(It.IsAny<List<RatingDataDTO>>(), It.IsAny<double>(), It.IsAny<double>()))
                        .Returns(expectedAttack);
@@ -310,8 +334,10 @@ namespace WCS.Tests.Simulators
             _probMock.Setup(p => p.PickRandomScore(It.IsAny<List<ScoreProbabilityDTO>>()))
                      .Returns(new ScoreProbabilityDTO { GoalsA = 2, GoalsB = 0 });
 
-            var result = _service.SimulateAdaptativeKnockoutsWithScores(matches, previousResults).First();
+            var result = _service.SimulateAdaptativeKnockoutsWithScores(matches, previousResults).First()
+                as AdaptativeMatchResultDTO;
 
+            result.Should().NotBeNull();
             // Verify that the winner's accumulated values (Team A) are mapped to the result
             result.WinnerAccumulatedScores.Should().Be(100);
             result.WinnerAccumulatedCount.Should().Be(5);
@@ -324,7 +350,7 @@ namespace WCS.Tests.Simulators
         [Fact]
         public void SimulateAdaptativeKnockoutsWithScores_ShouldAssignWinnerBData_WhenTeamBWins()
         {
-            var matches = new List<AdaptativeSimulationMatchDTO> { new() { TeamAID = 1, TeamBID = 2 } };
+            var matches = new List<SimulationMatchDTO> { new() { TeamAID = 1, TeamBID = 2 } };
             var bAttack = new AttackRatingDTO { AttackRating = 3.0, AccumulatedScores = 999 };
 
             // Setup so Team B returns 999
@@ -339,8 +365,9 @@ namespace WCS.Tests.Simulators
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
                      .Returns(new MatchProbabilityDTO { WinB = 0.7 });
 
-            var result = _service.SimulateAdaptativeKnockoutsWithScores(matches, []).First();
+            var result = _service.SimulateAdaptativeKnockoutsWithScores(matches, []).First() as AdaptativeMatchResultDTO;
 
+            result.Should().NotBeNull();
             result.Winner.Should().Be(MatchOutcome.WinB);
             result.WinnerAccumulatedScores.Should().Be(999);
         }
@@ -348,23 +375,30 @@ namespace WCS.Tests.Simulators
         [Fact]
         public void SimulateAdaptativeKnockoutsWithScores_ShouldHandlePenaltiesCorrectly()
         {
-            var matches = new List<AdaptativeSimulationMatchDTO> { new() { TeamAID = 1, TeamBID = 2 } };
+            var matches = new List<SimulationMatchDTO> { new() { TeamAID = 1, TeamBID = 2 } };
             _probMock.Setup(p => p.CalculateMatchProbabilities(It.IsAny<int>(), It.IsAny<double>(), It.IsAny<double>()))
                      .Returns(new MatchProbabilityDTO { WinA = 0.5, WinB = 0.5 });
+
+            SetupRatingMocks();
 
             // Score is 0-0
             _probMock.Setup(p => p.PickRandomScore(It.IsAny<List<ScoreProbabilityDTO>>()))
                      .Returns(new ScoreProbabilityDTO { GoalsA = 0, GoalsB = 0 });
 
-            _ratingMock.Setup(r => r.CalculateAttack(It.IsAny<List<RatingDataDTO>>(), It.IsAny<double>(), It.IsAny<double>()))
-                       .Returns(new AttackRatingDTO());
-            _ratingMock.Setup(r => r.CalculateDefense(It.IsAny<List<RatingDataDTO>>(), It.IsAny<double>(), It.IsAny<int>()))
-                       .Returns(new DefenseRatingDTO());
+            var result = _service.SimulateAdaptativeKnockoutsWithScores(matches, []).First() as AdaptativeMatchResultDTO;
 
-            var result = _service.SimulateAdaptativeKnockoutsWithScores(matches, []).First();
-
+            result.Should().NotBeNull();
             result.DecidedByPenalties.Should().BeTrue();
             result.Winner.Should().NotBe(MatchOutcome.Draw);
+        }
+
+        private void SetupRatingMocks()
+        {
+            _ratingMock.Setup(p => p.CalculateAttack(It.IsAny<List<RatingDataDTO>>(), It.IsAny<double>(), It.IsAny<double>()))
+                .Returns(new AttackRatingDTO());
+
+            _ratingMock.Setup(p => p.CalculateDefense(It.IsAny<List<RatingDataDTO>>(), It.IsAny<double>(), It.IsAny<int>()))
+                .Returns(new DefenseRatingDTO());
         }
     }
 }

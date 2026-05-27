@@ -7,23 +7,8 @@ namespace WCS.Application.Mappers
 {
     public class SimulationMappers
     {
-        public static void AssignWinnerAccumulatedData(AdaptativeMatchResultDTO result, MatchOutcome winner, int teamAID,
-            int teamBID, double probability, bool penalties, AttackRatingDTO attack, DefenseRatingDTO defense)
-        {
-            // Map winner outcome + carry over accumulated stats from the winning team
-            result.Winner = winner;
-            result.TeamAID = teamAID;
-            result.TeamBID = teamBID;
-            result.OutcomeProbability = probability;
-            result.DecidedByPenalties = penalties;
-            result.WinnerAccumulatedScores = attack.AccumulatedScores;
-            result.WinnerAccumulatedWeights = attack.AccumulatedWeights;
-            result.WinnerAccumulatedPenalties = defense.AccumulatedPenalties;
-            result.WinnerAccumulatedCount = defense.AccumulatedCount;
-        }
-
-        public static SimpleMatchResultDTO SimpleBuildResult(SimulationMatchDTO match, MatchOutcome outcome,
-            MatchProbabilityDTO matchProbability)
+        // Builds a simple match result.
+        public static SimpleMatchResultDTO SimpleBuildResult(SimulationMatchDTO match, MatchOutcome outcome, MatchProbabilityDTO matchProbability)
         {
             var result = new SimpleMatchResultDTO
             {
@@ -33,29 +18,20 @@ namespace WCS.Application.Mappers
                 TeamBID = match.TeamBID
             };
 
-            if (outcome == MatchOutcome.WinA)
+            (result.Winner, result.OutcomeProbability) = outcome switch
             {
-                result.Winner = MatchOutcome.WinA;
-                result.OutcomeProbability = matchProbability.WinA;
-            }
-            else if (outcome == MatchOutcome.WinB)
-            {
-                result.Winner = MatchOutcome.WinB;
-                result.OutcomeProbability = matchProbability.WinB;
-            }
-            else
-            {
-                result.Winner = MatchOutcome.Draw;
-                result.OutcomeProbability = matchProbability.Draw;
-            }
+                MatchOutcome.WinA => (MatchOutcome.WinA, matchProbability.WinA),
+                MatchOutcome.WinB => (MatchOutcome.WinB, matchProbability.WinB),
+                _ => (MatchOutcome.Draw, matchProbability.Draw)
+            };
 
             return result;
         }
 
-        public static MatchResultDTO BuildResult(SimulationMatchDTO match, ScoreProbabilityDTO score,
-            MatchProbabilityDTO matchProbability)
+        // Builds a match result with scores. Winner for draws is set inline.
+        public static MatchResultDTO BuildResult(SimulationMatchDTO match, ScoreProbabilityDTO score, MatchProbabilityDTO matchProbability)
         {
-            var result = new MatchResultDTO
+            var matchResult = new MatchResultDTO
             {
                 TeamA = match.TeamA,
                 TeamB = match.TeamB,
@@ -66,18 +42,32 @@ namespace WCS.Application.Mappers
                 ScoreProbability = score.Probability,
             };
 
-            if (score.GoalsA > score.GoalsB)
+            (matchResult.Winner, matchResult.OutcomeProbability) = score.GoalsA.CompareTo(score.GoalsB) switch
             {
-                result.Winner = MatchOutcome.WinA;
-                result.OutcomeProbability = matchProbability.WinA;
-            }
-            else if (score.GoalsB > score.GoalsA)
-            {
-                result.Winner = MatchOutcome.WinB;
-                result.OutcomeProbability = matchProbability.WinB;
-            }
+                > 0 => (MatchOutcome.WinA, matchProbability.WinA),
+                < 0 => (MatchOutcome.WinB, matchProbability.WinB),
+                _ => (MatchOutcome.Draw, matchProbability.Draw)
+            };
 
-            return result;
+            return matchResult;
+        }
+
+        // Builds a new AdaptativeMatchResultDTO with winner data.
+        public static AdaptativeMatchResultDTO BuildAdaptativeResult(MatchOutcome winner, int teamAID, int teamBID, double probability,
+            bool decidedByPenalties, AttackRatingDTO winnerAttack, DefenseRatingDTO winnerDefense)
+        {
+            return new AdaptativeMatchResultDTO
+            {
+                Winner = winner,
+                TeamAID = teamAID,
+                TeamBID = teamBID,
+                OutcomeProbability = probability,
+                DecidedByPenalties = decidedByPenalties,
+                WinnerAccumulatedScores = winnerAttack.AccumulatedScores,
+                WinnerAccumulatedWeights = winnerAttack.AccumulatedWeights,
+                WinnerAccumulatedPenalties = winnerDefense.AccumulatedPenalties,
+                WinnerAccumulatedCount = winnerDefense.AccumulatedCount
+            };
         }
     }
 }
