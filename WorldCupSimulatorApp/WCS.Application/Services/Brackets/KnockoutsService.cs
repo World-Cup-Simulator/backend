@@ -6,59 +6,68 @@ using WCS.Application.Services.Simulators;
 
 namespace WCS.Application.Services.Brackets
 {
-    public class KnockoutsService(ISimulationService simulationService, IKnockoutsMappers knockoutsMappers)
+    public class KnockoutsService(ISimulationService simulationService)
     {
         private readonly ISimulationService _simulationService = simulationService;
-        private readonly IKnockoutsMappers _knockoutsMappers = knockoutsMappers;
 
+        // Performs simple knockout simulation using the specified simulator function.
         public static KnockoutsOutcomeDTO PerformSimpleKnockouts(List<KnockoutMatchDTO> matches,
             Func<List<SimulationMatchDTO>, List<IMatchResult>> simulate)
         {
-            var outcome = new KnockoutsOutcomeDTO();
+            ValidateMatches(matches);
 
             var simulationList = KnockoutsMappers.CreateKnockoutsSimulationMatches(matches);
-
             var results = simulate(simulationList);
-
             var nextMatches = KnockoutsMappers.CreateNextKnockoutsMatches(matches, results);
 
-            outcome.Results = results;
-            outcome.NextMatches = nextMatches;
-
-            return outcome;
+            return new KnockoutsOutcomeDTO
+            {
+                Results = results,
+                NextMatches = nextMatches
+            };
         }
 
-        public AdaptativeKnockoutsOutcomeDTO PerformAdaptativeKnockouts(List<KnockoutMatchDTO> matches, List<GroupResultDTO> groupResults,
-            List<RatingDataDTO> previousResults)
+
+        // Performs adaptive knockout simulation with historical results.
+        public AdaptativeKnockoutsOutcomeDTO PerformAdaptativeKnockouts(List<KnockoutMatchDTO> matches, List<RatingDataDTO> previousResults)
         {
-            var outcome = new AdaptativeKnockoutsOutcomeDTO();
+            ValidateMatches(matches);
+            ValidatePreviousResults(previousResults);
 
             var simulationList = KnockoutsMappers.CreateKnockoutsSimulationMatches(matches);
-
-            var results = new List<IMatchResult>();
-
-            if (groupResults.Count > 0)
-            {
-                var previousGroupResults = KnockoutsMappers.CreatePreviousResults(groupResults);
-                results = _simulationService.SimulateAdaptativeKnockoutsWithScores(simulationList, previousGroupResults);
-            } else
-            {                
-                results = _simulationService.SimulateAdaptativeKnockoutsWithScores(simulationList, previousResults);
-            }
-
-            var adaptiveResults = results
-                .OfType<AdaptativeMatchResultDTO>()
-                .ToList();
-
-            var previousKnockoutsResults = _knockoutsMappers.CreatePreviousKnockoutsResults(matches, adaptiveResults);           
-
+            var results = _simulationService.SimulateAdaptativeKnockoutsWithScores(simulationList, previousResults);
+            var adaptiveResults = results.OfType<AdaptativeMatchResultDTO>().ToList();
+            var previousKnockoutsResults = KnockoutsMappers.CreatePreviousKnockoutsResults(matches, adaptiveResults);
             var nextMatches = KnockoutsMappers.CreateNextKnockoutsMatches(matches, results);
 
-            outcome.Results = results;
-            outcome.NextMatches = nextMatches;
-            outcome.PreviousResults = previousKnockoutsResults;
+            return new AdaptativeKnockoutsOutcomeDTO
+            {
+                Results = results,
+                NextMatches = nextMatches,
+                PreviousResults = previousKnockoutsResults
+            };
+        }
 
-            return outcome;
+        // Converts group results to rating data format for adaptive simulation.
+        public static List<RatingDataDTO> ConvertGroupResultsToRatingData(List<GroupResultDTO> groupResults)
+        {
+            if (groupResults is null)
+                throw new ArgumentNullException(nameof(groupResults));
+            return KnockoutsMappers.CreatePreviousResults(groupResults);
+        }
+
+        private static void ValidateMatches(List<KnockoutMatchDTO> matches)
+        {
+            if (matches is null)
+                throw new ArgumentNullException(nameof(matches));
+            if (matches.Count == 0)
+                throw new ArgumentException("Matches list cannot be empty.", nameof(matches));
+        }
+
+        private static void ValidatePreviousResults(List<RatingDataDTO> previousResults)
+        {
+            if (previousResults is null)
+                throw new ArgumentNullException(nameof(previousResults));
         }
     }
 }

@@ -25,5 +25,14 @@
             if (years <= 3) return 0.70;
             return 0.55;
         }
+
+        // Calculates attack rating from accumulated scores and weights.
+        // Returns 0 if no weights accumulated (avoiding division by zero).
+        public static double CalculateAttackRating(double accumulatedScores, double accumulatedWeights)
+        {
+            return accumulatedWeights <= 0
+                ? 0
+                : accumulatedScores / accumulatedWeights;
+        }
     }
 }
