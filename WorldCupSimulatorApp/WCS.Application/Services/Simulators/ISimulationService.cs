@@ -5,15 +5,15 @@ namespace WCS.Application.Services.Simulators
 {
     public interface ISimulationService 
     {
-        List<SimpleMatchResultDTO> SimpleSimulateGroupsStage(List<SimpleSimulationMatchDTO> matches);
+        List<IMatchResult> SimpleSimulateGroupsStage(List<SimulationMatchDTO> matches);
 
-        List<SimpleMatchResultDTO> SimpleSimulateKnockouts(List<SimpleSimulationMatchDTO> matches);
+        List<IMatchResult> SimpleSimulateKnockouts(List<SimulationMatchDTO> matches);
 
-        List<MatchResultDTO> SimpleSimulateGroupsStageWithScores(List<SimpleSimulationMatchDTO> matches);
+        List<IMatchResult> SimpleSimulateGroupsStageWithScores(List<SimulationMatchDTO> matches);
 
-        List<MatchResultDTO> SimpleSimulateKnockoutsWithScores(List<SimpleSimulationMatchDTO> matches);
+        List<IMatchResult> SimpleSimulateKnockoutsWithScores(List<SimulationMatchDTO> matches);
 
-        List<AdaptativeMatchResultDTO> SimulateAdaptativeKnockoutsWithScores(List<AdaptativeSimulationMatchDTO> matches,
+        List<IMatchResult> SimulateAdaptativeKnockoutsWithScores(List<SimulationMatchDTO> matches,
             List<RatingDataDTO> previousResults);
     }
 }
