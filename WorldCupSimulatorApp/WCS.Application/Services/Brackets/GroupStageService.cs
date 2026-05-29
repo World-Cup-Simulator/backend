@@ -8,229 +8,188 @@ namespace WCS.Application.Services.Brackets
 {
     public class GroupStageService
     {
-        public static List<GroupTable> BuildGroups(List<WorldCupTeam> teams)
+        // Builds group tables from team summaries by grouping on GroupCode.
+        public List<GroupTable> BuildGroups(List<TeamGroupSummaryDTO> teams)
         {
-            if (teams.Count == 0)
-                throw new ArgumentException("Teams list is empty.");
-
+            ValidateTeams(teams);
             return teams
-                .GroupBy(t => t.GroupCode)
-                .OrderBy(g => g.Key)
-                .Select(g => new GroupTable
-                {
-                    GroupCode = g.Key,
-                    Teams = g.Select(t => new GroupTableEntry
-                    {
-                        TeamId = t.TeamId,
-                        Name = t.Team.Name,
-                        FifaRank = t.Team.CurrentFifaRank,
-                        AccumulatedScores = t.Team.AccumulatedScores,
-                        AccumulatedWeights = t.Team.AccumulatedWeights,
-                        AccumulatedPenalties = t.Team.AccumulatedPenalties,
-                        AccumulatedCount = t.Team.AccumulatedCount,
-                    }).ToList()
-                })
+                .GroupBy(team => team.GroupCode)
+                .OrderBy(group => group.Key)
+                .Select(CreateGroupTable)
                 .ToList();
         }
 
-        public List<GroupResultDTO> UpdateGroups(List<WorldCupMatch> matches, List<GroupTable> groupsTable, Func<List<SimulationMatchDTO>, 
-            List<IMatchResult>> simulate)
+        // Runs group stage simulation and updates team standings.
+        public List<GroupResultDTO> UpdateGroups(List<SimulationMatchDTO> simulationMatches, List<GroupTable> groupTables,
+            Func<List<SimulationMatchDTO>, List<IMatchResult>> simulate)
         {
-            var resultsList = new List<GroupResultDTO>();
+            ValidateInputs(simulationMatches, groupTables);
 
-            var simulationList = GroupStageMappers.CreateGroupMatches(matches);
+            // Execute simulation to get match outcomes
+            var matchResults = simulate(simulationMatches);
 
-            var results = simulate(simulationList);
+            // Build lookup for O(1) team access during result processing
 
-            var teamLookup = groupsTable
-                .SelectMany(g => g.Teams.Select(t => new
-                    {
-                        TeamEntry = t,
-                    g.GroupCode
-                }))
-                .ToDictionary(x => x.TeamEntry.TeamId);
+            var teamLookup = BuildTeamLookup(groupTables);
 
-            foreach (var result in results)
-            {
-                var teamA = teamLookup[result.TeamAID];
-                var teamB = teamLookup[result.TeamBID];
-
-                if (result.Winner == MatchOutcome.WinA)
-                {
-                    teamA.TeamEntry.Points += 3;
-                }
-                else if (result.Winner == MatchOutcome.WinB)
-                {
-                    teamB.TeamEntry.Points += 3;
-                }
-                else // Draw
-                {
-                    teamA.TeamEntry.Points += 1;
-                    teamB.TeamEntry.Points += 1;                    
-                }
-
-                GroupStageMappers.AssignGoals(teamA.TeamEntry, teamB.TeamEntry, result);
-
-                var groupResult = GroupStageMappers.CreateGroupResult(result);
-                groupResult.GroupCode = teamA.GroupCode;
-                groupResult.TeamAFifaRank = teamA.TeamEntry.FifaRank;
-                groupResult.TeamBFifaRank = teamB.TeamEntry.FifaRank;
-                groupResult.AAttackRating = 
-                    teamA.TeamEntry.AccumulatedWeights <= 0 ? 0 : teamA.TeamEntry.AccumulatedScores / teamA.TeamEntry.AccumulatedWeights;
-                groupResult.BAttackRating =
-                    teamB.TeamEntry.AccumulatedWeights <= 0 ? 0 : teamB.TeamEntry.AccumulatedScores / teamB.TeamEntry.AccumulatedWeights;
-
-                resultsList.Add(groupResult);
-            }
-
-            return resultsList;
-        }                
-
-        public static List<KnockoutMatchDTO> BuildRoundOf32(List<GroupTable> groups)
-        {
-            // Rank teams within each group using standard tie-breakers:
-            // Points → Goal Difference → Goals Scored
-            var ordered = groups.Select(g => new
-            {
-                g.GroupCode,
-                Teams = g.Teams
-                    .OrderByDescending(t => t.Points)
-                    .ThenByDescending(t => t.GoalDifference)
-                    .ThenByDescending(t => t.GoalsScored)
-                    .ToList()
-            }).ToList();
-
-            // Extract top positions per group
-            var first = ordered.ToDictionary(g => g.GroupCode, g => g.Teams[0]);
-            var second = ordered.ToDictionary(g => g.GroupCode, g => g.Teams[1]);
-
-            // Store third-place teams for later selection
-            var thirdByGroup = ordered
-                .ToDictionary(g => g.GroupCode, g => g.Teams[2]);
-
-            // Select best third-placed teams across all groups using same tie-breakers
-            var bestThirdGroups = ordered
-                .Select(g => new { g.GroupCode, Team = g.Teams[2] })
-                .OrderByDescending(t => t.Team.Points)
-                .ThenByDescending(t => t.Team.GoalDifference)
-                .ThenByDescending(t => t.Team.GoalsScored)
-                .Take(8)
-                .Select(t => t.GroupCode)
+            // Process each result: update standings and build DTO
+            return matchResults
+                .Select(result => ProcessMatchResult(result, teamLookup))
                 .ToList();
+        }
 
-            // Hardcoded bracket mapping based on tournament structure
-            // Some slots are predefined (group winners and runners-up),
-            // while others will be filled with best third-placed teams
-            var matches = new List<KnockoutMatchDTO>
-            {                
-                new() { Key = 1, NextMatchKey = 1, TeamAID = first["E"].TeamId, AAccumulatedScores = first["E"].AccumulatedScores,
-                AAccumulatedWeights = first["E"].AccumulatedWeights, AAccumulatedPenalties = first["E"].AccumulatedPenalties,
-                AAccumulatedCount = first["E"].AccumulatedCount, TeamAFifaRank = first["E"].FifaRank},
+        // Constructs the Round of 32 bracket from final group standings.
+        public List<KnockoutMatchDTO> BuildRoundOf32(List<GroupTable> groups)
+        {
+            ValidateGroups(groups);
 
-                new() { Key = 2, NextMatchKey = 1, TeamAID = first["I"].TeamId, AAccumulatedScores = first["I"].AccumulatedScores,
-                AAccumulatedWeights = first["I"].AccumulatedWeights, AAccumulatedPenalties = first["I"].AccumulatedPenalties,
-                AAccumulatedCount = first["I"].AccumulatedCount, TeamAFifaRank = first["I"].FifaRank},
+            // Convert group tables to ranked standings (1st, 2nd, 3rd, 4th per group)
+            var groupRankings = RankGroupTables(groups);
 
-                new() { Key = 3, NextMatchKey = 2, TeamAID = second["A"].TeamId, AAccumulatedScores = second["A"].AccumulatedScores,
-                AAccumulatedWeights = second["A"].AccumulatedWeights, AAccumulatedPenalties = second["A"].AccumulatedPenalties,
-                AAccumulatedCount = second["A"].AccumulatedCount, TeamBID = second["B"].TeamId, BAccumulatedScores = second["B"].AccumulatedScores,
-                BAccumulatedWeights = second["B"].AccumulatedWeights, BAccumulatedPenalties = second["B"].AccumulatedPenalties,
-                BAccumulatedCount = second["B"].AccumulatedCount, TeamAFifaRank = second["A"].FifaRank, TeamBFifaRank = second["B"].FifaRank},
+            // Resolver handles bracket slot logic including third-place team assignment
+            var resolver = new BracketSlotResolver(groupRankings);
 
-                new() { Key = 4, NextMatchKey = 2, TeamAID = first["F"].TeamId, AAccumulatedScores = first["F"].AccumulatedScores,
-                AAccumulatedWeights = first["F"].AccumulatedWeights, AAccumulatedPenalties = first["F"].AccumulatedPenalties,
-                AAccumulatedCount = first["F"].AccumulatedCount, TeamBID = second["C"].TeamId, BAccumulatedScores = second["C"].AccumulatedScores,
-                BAccumulatedWeights = second["C"].AccumulatedWeights, BAccumulatedPenalties = second["C"].AccumulatedPenalties,
-                BAccumulatedCount = second["C"].AccumulatedCount, TeamAFifaRank = first["F"].FifaRank, TeamBFifaRank = second["C"].FifaRank},
+            // Resolve each slot definition to a concrete match with teams assigned
+            return BracketDefinitions.RoundOf32
+                .Select(slot => resolver.Resolve(slot))
+                .ToList();
+        }
 
-                new() { Key = 5, NextMatchKey = 3, TeamAID = second["K"].TeamId, AAccumulatedScores = second["K"].AccumulatedScores,
-                AAccumulatedWeights = second["K"].AccumulatedWeights, AAccumulatedPenalties = second["K"].AccumulatedPenalties,
-                AAccumulatedCount = second["K"].AccumulatedCount, TeamBID = second["L"].TeamId, BAccumulatedScores = second["L"].AccumulatedScores,
-                BAccumulatedWeights = second["L"].AccumulatedWeights, BAccumulatedPenalties = second["L"].AccumulatedPenalties,
-                BAccumulatedCount = second["L"].AccumulatedCount, TeamAFifaRank = second["K"].FifaRank, TeamBFifaRank = second["L"].FifaRank},
-
-                new() { Key = 6, NextMatchKey = 3, TeamAID = first["H"].TeamId, AAccumulatedScores = first["H"].AccumulatedScores,
-                AAccumulatedWeights = first["H"].AccumulatedWeights, AAccumulatedPenalties = first["H"].AccumulatedPenalties,
-                AAccumulatedCount = first["H"].AccumulatedCount, TeamBID = second["J"].TeamId, BAccumulatedScores = second["J"].AccumulatedScores,
-                BAccumulatedWeights = second["J"].AccumulatedWeights, BAccumulatedPenalties = second["J"].AccumulatedPenalties,
-                BAccumulatedCount = second["J"].AccumulatedCount, TeamAFifaRank = first["H"].FifaRank, TeamBFifaRank = second["J"].FifaRank},
-
-                new() { Key = 7, NextMatchKey = 4, TeamAID = first["D"].TeamId, AAccumulatedScores = first["D"].AccumulatedScores,
-                AAccumulatedWeights = first["D"].AccumulatedWeights, AAccumulatedPenalties = first["D"].AccumulatedPenalties,
-                AAccumulatedCount = first["D"].AccumulatedCount, TeamAFifaRank = first["D"].FifaRank},
-
-                new() { Key = 8, NextMatchKey = 4, TeamAID = first["G"].TeamId, AAccumulatedScores = first["G"].AccumulatedScores,
-                AAccumulatedWeights = first["G"].AccumulatedWeights, AAccumulatedPenalties = first["G"].AccumulatedPenalties,
-                AAccumulatedCount = first["G"].AccumulatedCount, TeamAFifaRank = first["G"].FifaRank},
-
-                new() { Key = 9, NextMatchKey = 5, TeamAID = first["C"].TeamId, AAccumulatedScores = first["C"].AccumulatedScores,
-                AAccumulatedWeights = first["C"].AccumulatedWeights, AAccumulatedPenalties = first["C"].AccumulatedPenalties,
-                AAccumulatedCount = first["C"].AccumulatedCount, TeamBID = second["F"].TeamId, BAccumulatedScores = second["F"].AccumulatedScores,
-                BAccumulatedWeights = second["F"].AccumulatedWeights, BAccumulatedPenalties = second["F"].AccumulatedPenalties,
-                BAccumulatedCount = second["F"].AccumulatedCount, TeamAFifaRank = first["C"].FifaRank, TeamBFifaRank = second["F"].FifaRank},
-
-                new() { Key = 10, NextMatchKey = 5, TeamAID = second["E"].TeamId, AAccumulatedScores = second["E"].AccumulatedScores,
-                AAccumulatedWeights = second["E"].AccumulatedWeights, AAccumulatedPenalties = second["E"].AccumulatedPenalties,
-                AAccumulatedCount = second["E"].AccumulatedCount, TeamBID = second["I"].TeamId, BAccumulatedScores = second["I"].AccumulatedScores,
-                BAccumulatedWeights = second["I"].AccumulatedWeights, BAccumulatedPenalties = second["I"].AccumulatedPenalties,
-                BAccumulatedCount = second["I"].AccumulatedCount, TeamAFifaRank = second["E"].FifaRank, TeamBFifaRank = second["I"].FifaRank},
-
-                new() { Key = 11, NextMatchKey = 6, TeamAID = first["A"].TeamId, AAccumulatedScores = first["A"].AccumulatedScores,
-                AAccumulatedWeights = first["A"].AccumulatedWeights, AAccumulatedPenalties = first["A"].AccumulatedPenalties,
-                AAccumulatedCount = first["A"].AccumulatedCount, TeamAFifaRank = first["A"].FifaRank},
-
-                new() { Key = 12, NextMatchKey = 6, TeamAID = first["L"].TeamId, AAccumulatedScores = first["L"].AccumulatedScores,
-                AAccumulatedWeights = first["L"].AccumulatedWeights, AAccumulatedPenalties = first["L"].AccumulatedPenalties,
-                AAccumulatedCount = first["L"].AccumulatedCount, TeamAFifaRank = first["L"].FifaRank},
-
-                new() { Key = 13, NextMatchKey = 7, TeamAID = first["J"].TeamId, AAccumulatedScores = first["J"].AccumulatedScores,
-                AAccumulatedWeights = first["J"].AccumulatedWeights, AAccumulatedPenalties = first["J"].AccumulatedPenalties,
-                AAccumulatedCount = first["J"].AccumulatedCount, TeamBID = second["H"].TeamId, BAccumulatedScores = second["H"].AccumulatedScores,
-                BAccumulatedWeights = second["H"].AccumulatedWeights, BAccumulatedPenalties = second["H"].AccumulatedPenalties,
-                BAccumulatedCount = second["H"].AccumulatedCount, TeamAFifaRank = first["J"].FifaRank, TeamBFifaRank = second["H"].FifaRank},
-
-                new() { Key = 14, NextMatchKey = 7, TeamAID = second["D"].TeamId, AAccumulatedScores = second["D"].AccumulatedScores,
-                AAccumulatedWeights = second["D"].AccumulatedWeights, AAccumulatedPenalties = second["D"].AccumulatedPenalties,
-                AAccumulatedCount = second["D"].AccumulatedCount, TeamBID = second["G"].TeamId, BAccumulatedScores = second["G"].AccumulatedScores,
-                BAccumulatedWeights = second["G"].AccumulatedWeights, BAccumulatedPenalties = second["G"].AccumulatedPenalties,
-                BAccumulatedCount = second["G"].AccumulatedCount, TeamAFifaRank = second["D"].FifaRank, TeamBFifaRank = second["G"].FifaRank},
-
-                new() { Key = 15, NextMatchKey = 8, TeamAID = first["B"].TeamId, AAccumulatedScores = first["B"].AccumulatedScores,
-                AAccumulatedWeights = first["B"].AccumulatedWeights, AAccumulatedPenalties = first["B"].AccumulatedPenalties,
-                AAccumulatedCount = first["B"].AccumulatedCount, TeamAFifaRank = first["B"].FifaRank},
-
-                new() { Key = 16, NextMatchKey = 8, TeamAID = first["K"].TeamId, AAccumulatedScores = first["K"].AccumulatedScores,
-                AAccumulatedWeights = first["K"].AccumulatedWeights, AAccumulatedPenalties = first["K"].AccumulatedPenalties,
-                AAccumulatedCount = first["K"].AccumulatedCount, TeamAFifaRank = first["K"].FifaRank}
-            };
-
-            // Dynamically assign best third-placed teams to predefined bracket slots
-            // based on tournament rules (mapping handled by AssignThirds)
-            var assignedThirds = GroupStageMappers.AssignThirds(bestThirdGroups);
-
-            var matchByKey = matches.ToDictionary(m => m.Key);
-
-            foreach (var third in assignedThirds)
+        private static GroupTable CreateGroupTable(IGrouping<string, TeamGroupSummaryDTO> group)
+        {
+            return new GroupTable
             {
-                var matchKey = third.Key;
-                var groupCode = third.Value;
-                var team = thirdByGroup[groupCode];                               
-                var match = matchByKey[matchKey];
+                GroupCode = group.Key,
+                Teams = group.Select(ToGroupTableEntry).ToList()
+            };
+        }
 
-                // Safety check: ensure slot is not already filled
-                if (match.TeamBID != null)
-                    throw new Exception($"Match {matchKey} already has TeamB assigned.");
+        private static GroupTableEntry ToGroupTableEntry(TeamGroupSummaryDTO team)
+        {
+            return new GroupTableEntry
+            {
+                TeamId = team.TeamId,
+                Name = team.Name,
+                FifaRank = team.FifaRank,
+                AccumulatedScores = team.AccumulatedScores,
+                AccumulatedWeights = team.AccumulatedWeights,
+                AccumulatedPenalties = team.AccumulatedPenalties,
+                AccumulatedCount = team.AccumulatedCount
+            };
+        }
 
-                match.TeamBID = team.TeamId;
-                match.TeamBFifaRank = team.FifaRank;
-                match.BAccumulatedScores = team.AccumulatedScores;
-                match.BAccumulatedWeights = team.AccumulatedWeights;
-                match.BAccumulatedPenalties = team.AccumulatedPenalties;
-                match.BAccumulatedCount = team.AccumulatedCount;
+        // Builds a lookup dictionary for O(1) access to teams by their TeamId.
+        // 
+        // WHY: During result processing, we need to quickly find both teams involved in each
+        // match to update their standings. A dictionary eliminates O(n) searches through
+        // nested group structures.
+        // 
+        // STRUCTURE: The dictionary maps TeamId -> Tuple(TeamEntry, GroupCode). The GroupCode
+        // is stored alongside because it's needed for the GroupResultDTO but isn't on the
+        // GroupTableEntry entity itself.
+        private static Dictionary<int, (GroupTableEntry Entry, string GroupCode)> BuildTeamLookup(
+            List<GroupTable> groupTables)
+        {
+            return groupTables
+                .SelectMany(group => group.Teams.Select(team =>
+                    new KeyValuePair<int, (GroupTableEntry, string)>(
+                        team.TeamId, (team, group.GroupCode))))
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
 
+
+        // Processes a single match result: updates team standings and constructs result DTO.
+        private static GroupResultDTO ProcessMatchResult(IMatchResult result, Dictionary<int,
+            (GroupTableEntry Entry, string GroupCode)> teamLookup)
+        {
+            var (teamA, groupCodeA) = teamLookup[result.TeamAID];
+            var (teamB, groupCodeB) = teamLookup[result.TeamBID];
+
+            // Updates Points and Goal statistics
+            UpdateTeamStandings(teamA, teamB, result);
+
+            var groupResult = GroupStageMappers.CreateGroupResult(result);
+
+            // Enrich with group context and team metadata
+            groupResult.GroupCode = groupCodeA;
+            groupResult.TeamAFifaRank = teamA.FifaRank;
+            groupResult.TeamBFifaRank = teamB.FifaRank;
+
+            // Calculate derived attack ratings for adaptive simulation
+            groupResult.AAttackRating = CalculateAttackRating(teamA);
+            groupResult.BAttackRating = CalculateAttackRating(teamB);
+
+            return groupResult;
+        }
+
+        private static void UpdateTeamStandings(
+            GroupTableEntry teamA,
+            GroupTableEntry teamB,
+            IMatchResult result)
+        {
+            switch (result.Winner)
+            {
+                case MatchOutcome.WinA:
+                    teamA.Points += 3;
+                    break;
+                case MatchOutcome.WinB:
+                    teamB.Points += 3;
+                    break;
+                case MatchOutcome.Draw:
+                    teamA.Points += 1;
+                    teamB.Points += 1;
+                    break;
             }
+            GroupStageMappers.AssignGoals(teamA, teamB, result);
+        }
+        private static double CalculateAttackRating(GroupTableEntry team)
+        {
+            return team.AccumulatedWeights <= 0
+                ? 0
+                : team.AccumulatedScores / team.AccumulatedWeights;
+        }
 
-            return matches;
+        // Ranks teams within each group using FIFA tournament tie-breaker rules.
+        // It captures the final standings at a point in time for bracket construction.
+        private static List<GroupRanking> RankGroupTables(List<GroupTable> groups)
+        {
+            return groups
+                .Select(group => new GroupRanking(
+                    group.GroupCode,
+                    group.Teams
+                        .OrderByDescending(team => team.Points)
+                        .ThenByDescending(team => team.GoalDifference)
+                        .ThenByDescending(team => team.GoalsScored)
+                        .ToList()))
+                .ToList();
+        }
+
+        private static void ValidateTeams(List<TeamGroupSummaryDTO> teams)
+        {
+            if (teams is null)
+                throw new ArgumentNullException(nameof(teams));
+            if (teams.Count == 0)
+                throw new ArgumentException("Teams list cannot be empty.", nameof(teams));
+        }
+
+        private static void ValidateInputs(List<SimulationMatchDTO> matches, List<GroupTable> groupTables)
+        {
+            if (matches is null)
+                throw new ArgumentNullException(nameof(matches));
+            if (groupTables is null)
+                throw new ArgumentNullException(nameof(groupTables));
+            if (matches.Count == 0)
+                throw new ArgumentException("Matches list cannot be empty.", nameof(matches));
+            if (groupTables.Count == 0)
+                throw new ArgumentException("Group tables list cannot be empty.", nameof(groupTables));
+        }
+
+        private static void ValidateGroups(List<GroupTable> groups)
+        {
+            if (groups is null)
+                throw new ArgumentNullException(nameof(groups));
+            if (groups.Count == 0)
+                throw new ArgumentException("Groups list cannot be empty.", nameof(groups));
         }
     }
 }

@@ -48,7 +48,7 @@ namespace WCS.Application.Mappers
             {
                 var nextMatch = new KnockoutMatchDTO();
                 var AActualMatch = matches[ActualKey];
-                ActualKey =+ 1;
+                ActualKey += 1;
 
                 nextMatch.Key = i;
                 nextMatch.Stage = AActualMatch.Stage + 1;
