@@ -12,7 +12,6 @@ namespace WCS.Domain.Entities
 
         [MaxLength(3, ErrorMessage = "Code must not exceed 3 characters")]
         public string Code { get; set; } = string.Empty;
-        public Confederation Confederation { get; set; }
         public int CurrentFifaRank { get; set; }
         public double AttackRating { get; set; }
         public double DefenseRating { get; set; }

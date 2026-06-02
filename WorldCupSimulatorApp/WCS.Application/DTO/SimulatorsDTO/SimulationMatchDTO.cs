@@ -1,4 +1,4 @@
-﻿namespace WCS.Application.DTO.MatchesDTO
+﻿namespace WCS.Application.DTO.SimulatorsDTO
 {
     public class SimulationMatchDTO
     {

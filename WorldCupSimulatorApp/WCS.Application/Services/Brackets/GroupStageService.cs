@@ -1,5 +1,5 @@
 ﻿using WCS.Application.DTO.BracketsDTO;
-using WCS.Application.DTO.MatchesDTO;
+using WCS.Application.DTO.SimulatorsDTO;
 using WCS.Application.Mappers;
 using WCS.Domain.Entities;
 using WCS.Domain.Enums;

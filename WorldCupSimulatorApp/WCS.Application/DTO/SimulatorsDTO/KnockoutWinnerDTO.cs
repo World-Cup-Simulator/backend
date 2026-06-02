@@ -1,6 +1,6 @@
 ﻿using WCS.Domain.Enums;
 
-namespace WCS.Application.DTO.MatchesDTO
+namespace WCS.Application.DTO.SimulatorsDTO
 {
     public class KnockoutWinnerDTO
     {

@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using Moq;
-using WCS.Application.DTO.MatchesDTO;
+using WCS.Application.DTO.SimulatorsDTO;
 using WCS.Application.DTO.ProbabilitiesDTO;
 using WCS.Application.DTO.RatingsDTO;
 using WCS.Application.Services.Probabilities;
