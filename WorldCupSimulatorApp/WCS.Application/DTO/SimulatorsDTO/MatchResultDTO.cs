@@ -1,8 +1,8 @@
 ﻿using WCS.Domain.Enums;
 
-namespace WCS.Application.DTO.MatchesDTO
+namespace WCS.Application.DTO.SimulatorsDTO
 {
-    public class AdaptativeMatchResultDTO : IScoreResult
+    public class MatchResultDTO : IScoreResult
     {
         public string TeamA { get; set; } = string.Empty;
         public string TeamB { get; set; } = string.Empty;
@@ -14,9 +14,5 @@ namespace WCS.Application.DTO.MatchesDTO
         public double OutcomeProbability { get; set; }
         public double ScoreProbability { get; set; }
         public bool DecidedByPenalties { get; set; } = false;
-        public double WinnerAccumulatedScores { get; set; }
-        public double WinnerAccumulatedWeights { get; set; }
-        public double WinnerAccumulatedPenalties { get; set; }
-        public int WinnerAccumulatedCount { get; set; }
     }
 }

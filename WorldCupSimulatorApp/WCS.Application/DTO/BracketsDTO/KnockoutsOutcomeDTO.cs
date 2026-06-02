@@ -1,4 +1,4 @@
-﻿using WCS.Application.DTO.MatchesDTO;
+﻿using WCS.Application.DTO.SimulatorsDTO;
 
 namespace WCS.Application.DTO.BracketsDTO
 {

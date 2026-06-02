@@ -4,6 +4,8 @@ using WCS.Application.Services.Ratings;
 using WCS.Application.Services.Simulators;
 using WCS.Domain.Entities;
 using WCS.Infrastructure.Persistence;
+using WCS.Infrastructure.Repositories;
+using WCS.Infrastructure.Repositories.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +24,10 @@ builder.Services.Configure<RatingWeightsOptions>(
 builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddScoped<IMatchProbabilityService, MatchProbabilityService>();
 builder.Services.AddScoped<ISimulationService, SimulationService>();
+builder.Services.AddScoped<IHistoricalMatchRepository, HistoricalMatchRepository>();
+builder.Services.AddScoped<INationalTeamRepository, NationalTeamRepository>();
+builder.Services.AddScoped<IWorldCupMatchRepository, WorldCupMatchRepository>();
+builder.Services.AddScoped<IWorldCupTeamRepository, WorldCupTeamRepository>();
 
 var app = builder.Build();
 
@@ -41,7 +47,7 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<EFCoreDbContext>();
-    db.Database.Migrate();
+      db.Database.Migrate();
 }
 
 app.Run();
