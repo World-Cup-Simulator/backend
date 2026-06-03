@@ -1,4 +1,5 @@
 ﻿using WCS.Application.DTO.BracketsDTO;
+using WCS.Application.DTO.DisplaysDTO;
 
 namespace WCS.Infrastructure.Repositories.Interfaces
 {

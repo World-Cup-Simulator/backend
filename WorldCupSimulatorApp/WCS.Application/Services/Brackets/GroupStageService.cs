@@ -6,7 +6,7 @@ using WCS.Domain.Enums;
 
 namespace WCS.Application.Services.Brackets
 {
-    public class GroupStageService
+    public class GroupStageService : IGroupStageService
     {
         // Builds group tables from team summaries by grouping on GroupCode.
         public List<GroupTable> BuildGroups(List<TeamGroupSummaryDTO> teams)

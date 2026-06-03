@@ -1,4 +1,4 @@
-﻿using WCS.Application.DTO.BracketsDTO;
+﻿using WCS.Application.DTO.DisplaysDTO;
 using WCS.Application.DTO.SimulatorsDTO;
 
 namespace WCS.Infrastructure.Repositories.Interfaces

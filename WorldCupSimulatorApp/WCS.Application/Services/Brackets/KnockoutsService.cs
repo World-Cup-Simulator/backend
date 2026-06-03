@@ -6,12 +6,12 @@ using WCS.Application.Services.Simulators;
 
 namespace WCS.Application.Services.Brackets
 {
-    public class KnockoutsService(ISimulationService simulationService)
+    public class KnockoutsService(ISimulationService simulationService) : IKnockoutsService
     {
         private readonly ISimulationService _simulationService = simulationService;
 
         // Performs simple knockout simulation using the specified simulator function.
-        public static KnockoutsOutcomeDTO PerformSimpleKnockouts(List<KnockoutMatchDTO> matches,
+        public KnockoutsOutcomeDTO PerformSimpleKnockouts(List<KnockoutMatchDTO> matches,
             Func<List<SimulationMatchDTO>, List<IMatchResult>> simulate)
         {
             ValidateMatches(matches);
@@ -49,7 +49,7 @@ namespace WCS.Application.Services.Brackets
         }
 
         // Converts group results to rating data format for adaptive simulation.
-        public static List<RatingDataDTO> ConvertGroupResultsToRatingData(List<GroupResultDTO> groupResults)
+        public List<RatingDataDTO> ConvertGroupResultsToRatingData(List<GroupResultDTO> groupResults)
         {
             if (groupResults is null)
                 throw new ArgumentNullException(nameof(groupResults));

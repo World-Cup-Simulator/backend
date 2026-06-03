@@ -1,4 +1,4 @@
-﻿namespace WCS.Application.DTO.BracketsDTO
+﻿namespace WCS.Application.DTO.DisplaysDTO
 {
     // DTO for displaying group composition and team seeding information.
     public class GroupSeedDisplayDTO

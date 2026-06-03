@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using WCS.Application.DTO.BracketsDTO;
+using WCS.Application.DTO.DisplaysDTO;
 using WCS.Application.DTO.SimulatorsDTO;
 using WCS.Infrastructure.Persistence;
 using WCS.Infrastructure.Repositories.Interfaces;

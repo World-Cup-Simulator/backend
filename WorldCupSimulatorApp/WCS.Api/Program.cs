@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using WCS.Application.Services.Brackets;
 using WCS.Application.Services.Probabilities;
 using WCS.Application.Services.Ratings;
 using WCS.Application.Services.Simulators;
@@ -10,6 +12,15 @@ using WCS.Infrastructure.Repositories.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("default", opt =>
+    {
+        opt.PermitLimit = 30;
+        opt.Window = TimeSpan.FromMinutes(1);
+    });
+});
 
 builder.Services.AddOpenApi();
 
@@ -28,6 +39,8 @@ builder.Services.AddScoped<IHistoricalMatchRepository, HistoricalMatchRepository
 builder.Services.AddScoped<INationalTeamRepository, NationalTeamRepository>();
 builder.Services.AddScoped<IWorldCupMatchRepository, WorldCupMatchRepository>();
 builder.Services.AddScoped<IWorldCupTeamRepository, WorldCupTeamRepository>();
+builder.Services.AddScoped<IGroupStageService, GroupStageService>();
+builder.Services.AddScoped<IKnockoutsService, KnockoutsService>();
 
 var app = builder.Build();
 
@@ -41,6 +54,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+
+app.UseRateLimiter();
 
 app.MapControllers();
 

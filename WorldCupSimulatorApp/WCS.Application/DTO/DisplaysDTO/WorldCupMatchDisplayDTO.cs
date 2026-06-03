@@ -1,4 +1,4 @@
-﻿namespace WCS.Application.DTO.BracketsDTO
+﻿namespace WCS.Application.DTO.DisplaysDTO
 {
     // Lightweight DTO for displaying World Cup match information in the frontend.
     // Does not include simulation-specific accumulated stats.
