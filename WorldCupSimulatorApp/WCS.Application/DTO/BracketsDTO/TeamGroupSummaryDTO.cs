@@ -7,7 +7,7 @@
         string Name,
         int FifaRank,
         string GroupCode,
-        int PositionOrder,
+        int Points,
         double AccumulatedScores,
         double AccumulatedWeights,
         double AccumulatedPenalties,

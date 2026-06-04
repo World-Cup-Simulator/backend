@@ -71,6 +71,7 @@ namespace WCS.Application.Services.Brackets
                 TeamId = team.TeamId,
                 Name = team.Name,
                 FifaRank = team.FifaRank,
+                Points = team.Points,
                 AccumulatedScores = team.AccumulatedScores,
                 AccumulatedWeights = team.AccumulatedWeights,
                 AccumulatedPenalties = team.AccumulatedPenalties,

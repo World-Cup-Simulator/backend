@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using WCS.Application.DTO.BracketsDTO;
-using WCS.Application.DTO.DisplaysDTO;
 using WCS.Application.DTO.RequestDTO;
 using WCS.Application.DTO.ResponseDTO;
 using WCS.Application.DTO.SimulatorsDTO;
+using WCS.Application.Mappers;
 using WCS.Application.Services.Brackets;
 using WCS.Application.Services.Simulators;
-using WCS.Domain.Entities;
 using WCS.Domain.Enums;
 using WCS.Infrastructure.Repositories.Interfaces;
 
@@ -41,8 +40,16 @@ namespace WCS.Api.Controllers
                 return BadRequest(new { message = $"Invalid simulation type: {type}. Valid values: {string.Join(", ", Enum.GetNames<SimulationType>())}" });
 
             var teams = await _teamRepository.GetAllForGroupStageAsync();
+            if (teams == null || teams.Count == 0)
+                return StatusCode(500, "Cannot obtain teams data");
+
             var groups = _groupStageService.BuildGroups(teams);
+            if (groups == null || groups.Count == 0)
+                return StatusCode(500, "Failed to build groups");
+
             var matches = await _matchRepository.GetAllForSimulationAsync();
+            if (matches == null || matches.Count == 0)
+                return StatusCode(500, "Cannot obtain matches data");
 
             Func<List<SimulationMatchDTO>, List<IMatchResult>> simulator = type switch
             {
@@ -52,13 +59,21 @@ namespace WCS.Api.Controllers
             };
 
             var results = _groupStageService.UpdateGroups(matches, groups, simulator);
+            if (results == null || results.Count == 0)
+                return StatusCode(500, "Failed to simulate groups");
+
             var knockoutBracket = _groupStageService.BuildRoundOf32(groups);
+            if (knockoutBracket == null || knockoutBracket.Count == 0)
+                return StatusCode(500, "Failed to create brackets");
+
             var ratingData = _knockoutsService.ConvertGroupResultsToRatingData(results);
+            if (ratingData == null || ratingData.Count == 0)
+                return StatusCode(500, "Internal Server Error");
 
             var response = new GroupStageSimulationResponse
             {
-                Results = results.Select(MapGroupResult).ToList(),
-                FinalStandings = groups.Select(MapGroupTable).ToList(),
+                Results = results.Select(DisplayMappers.MapGroupResult).ToList(),
+                FinalStandings = groups.Select(DisplayMappers.MapGroupTable).ToList(),
                 KnockoutBracket = knockoutBracket,
                 RatingData = ratingData
             };
@@ -88,10 +103,12 @@ namespace WCS.Api.Controllers
             };
 
             var outcome = _knockoutsService.PerformSimpleKnockouts(request, simulator);
+            if (outcome == null || outcome.Results.Count == 0)
+                return StatusCode(500, "Failed to simulate knockouts");
 
             var response = new KnockoutSimulationResponse
             {
-                Results = outcome.Results.Select(MapKnockoutResult).ToList(),
+                Results = outcome.Results.Select(DisplayMappers.MapKnockoutResult).ToList(),
                 NextMatches = outcome.NextMatches,
                 PreviousResults = [],
                 IsFinal = outcome.NextMatches.Count == 0
@@ -113,69 +130,18 @@ namespace WCS.Api.Controllers
                 return BadRequest(new { message = "Previous results cannot be null." });
 
             var outcome = _knockoutsService.PerformAdaptativeKnockouts(request.Matches, request.PreviousResults);
+            if (outcome == null || outcome.Results.Count == 0)
+                return StatusCode(500, "Failed to simulate knockouts");
 
             var response = new KnockoutSimulationResponse
             {
-                Results = outcome.Results.Select(MapKnockoutResult).ToList(),
+                Results = outcome.Results.Select(DisplayMappers.MapKnockoutResult).ToList(),
                 NextMatches = outcome.NextMatches,
                 PreviousResults = outcome.PreviousResults,
                 IsFinal = outcome.NextMatches.Count == 0
             };
 
             return Ok(response);
-        }
-
-        private static GroupResultDisplayDTO MapGroupResult(GroupResultDTO result)
-        {
-            return new GroupResultDisplayDTO
-            {
-                GroupCode = result.GroupCode,
-                TeamA = result.TeamA,
-                TeamB = result.TeamB,
-                GoalsA = result.GoalsA,
-                GoalsB = result.GoalsB,
-                Winner = result.Winner,
-                Date = result.Date,
-                OutcomeProbability = result.OutcomeProbability,
-                ScoreProbability = result.ScoreProbability,
-                DecidedByPenalties = result.DecidedByPenalties
-            };
-        }
-
-        private static GroupTableDisplayDTO MapGroupTable(GroupTable group)
-        {
-            return new GroupTableDisplayDTO
-            {
-                GroupCode = group.GroupCode,
-                Teams = group.Teams.Select(t => new GroupTableTeamDisplayDTO
-                {
-                    Name = t.Name,
-                    Points = t.Points,
-                    GoalsScored = t.GoalsScored,
-                    GoalsConceded = t.GoalsConceded
-                }).ToList()
-            };
-        }
-
-        private static KnockoutResultDisplayDTO MapKnockoutResult(IMatchResult result)
-        {
-            var display = new KnockoutResultDisplayDTO
-            {
-                TeamA = result.TeamA,
-                TeamB = result.TeamB,
-                Winner = result.Winner,
-                OutcomeProbability = result.OutcomeProbability
-            };
-
-            if (result is IScoreResult scoreResult)
-            {
-                display.GoalsA = scoreResult.GoalsA;
-                display.GoalsB = scoreResult.GoalsB;
-                display.ScoreProbability = scoreResult.ScoreProbability;
-                display.DecidedByPenalties = scoreResult.DecidedByPenalties;
-            }
-
-            return display;
-        }
+        }        
     }
 }

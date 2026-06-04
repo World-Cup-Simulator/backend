@@ -39,6 +39,7 @@ builder.Services.AddScoped<IHistoricalMatchRepository, HistoricalMatchRepository
 builder.Services.AddScoped<INationalTeamRepository, NationalTeamRepository>();
 builder.Services.AddScoped<IWorldCupMatchRepository, WorldCupMatchRepository>();
 builder.Services.AddScoped<IWorldCupTeamRepository, WorldCupTeamRepository>();
+builder.Services.AddScoped<IWorldCupFinalsRepository, WorldCupFinalsRepository>();
 builder.Services.AddScoped<IGroupStageService, GroupStageService>();
 builder.Services.AddScoped<IKnockoutsService, KnockoutsService>();
 

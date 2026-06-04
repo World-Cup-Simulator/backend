@@ -2,10 +2,7 @@
 
 namespace WCS.Application.DTO.DisplaysDTO
 {
-    /// <summary>
-    /// Simplified knockout result for frontend display.
-    /// Includes probabilities but strips accumulated stats.
-    /// </summary>
+    // Simplified knockout result for frontend display.
     public class KnockoutResultDisplayDTO
     {
         public string TeamA { get; set; } = string.Empty;

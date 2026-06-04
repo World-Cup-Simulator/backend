@@ -12,6 +12,9 @@ namespace WCS.Domain.Entities
 
         [MaxLength(1, ErrorMessage = "Code must not exceed 1 character")]
         public string GroupCode { get; set; } = string.Empty;
+        public bool Played { get; set; } = false;
+        public int? GoalsA { get; set; }
+        public int? GoalsB { get; set; }
         public int TeamAId { get; set; }
         public int TeamBId { get; set; }
 

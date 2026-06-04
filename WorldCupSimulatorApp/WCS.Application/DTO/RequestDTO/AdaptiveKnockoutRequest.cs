@@ -3,9 +3,7 @@ using WCS.Application.DTO.RatingsDTO;
 
 namespace WCS.Application.DTO.RequestDTO
 {
-    /// <summary>
-    /// Request body for adaptive knockout simulation.
-    /// </summary>
+    // Request body for adaptive knockout simulation.
     public class AdaptiveKnockoutRequest
     {
         public List<KnockoutMatchDTO> Matches { get; set; } = [];

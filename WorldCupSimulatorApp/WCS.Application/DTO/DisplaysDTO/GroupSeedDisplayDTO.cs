@@ -11,6 +11,6 @@
     {
         public string TeamName { get; set; } = string.Empty;
         public string? TeamCode { get; set; }  // 3-letter code
-        public int PositionOrder { get; set; }  // 1=seed, 2, 3, 4
+        public int Points { get; set; }
     }
 }

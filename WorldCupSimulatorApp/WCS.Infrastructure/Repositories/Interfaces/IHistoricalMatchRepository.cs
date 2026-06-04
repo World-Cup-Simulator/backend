@@ -1,4 +1,5 @@
 ﻿using WCS.Application.DTO.RatingsDTO;
+using WCS.Domain.Entities;
 
 namespace WCS.Infrastructure.Repositories.Interfaces
 {
@@ -7,5 +8,7 @@ namespace WCS.Infrastructure.Repositories.Interfaces
         // Retrieves all historical matches and transforms each into two RatingDataDTO objects
         // (one from each team's perspective). This is used for initial ratings calculation.
         Task<List<RatingDataDTO>> GetAllForInitialRatingsAsync();
+
+        Task InsertListAsync(List<HistoricalMatch> historicalMatches);
     }
 }

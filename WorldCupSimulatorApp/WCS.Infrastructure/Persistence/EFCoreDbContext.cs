@@ -14,6 +14,7 @@ namespace WCS.Infrastructure.Persistence
         public DbSet<HistoricalMatch> HistoricalMatches => Set<HistoricalMatch>();
         public DbSet<WorldCupTeam> WorldCupTeams => Set<WorldCupTeam>();
         public DbSet<WorldCupMatch> WorldCupMatches => Set<WorldCupMatch>();
+        public DbSet<WorldCupFinals> WorldCupFinals => Set<WorldCupFinals>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -22,6 +23,7 @@ namespace WCS.Infrastructure.Persistence
             ConfigureHistoricalMatch(modelBuilder);
             ConfigureWorldCupTeam(modelBuilder);
             ConfigureWorldCupMatch(modelBuilder);
+            ConfigureWorldCupFinals(modelBuilder);
         }
 
         private void ConfigureNationalTeam(ModelBuilder modelBuilder)
@@ -180,6 +182,16 @@ namespace WCS.Infrastructure.Persistence
                     .HasForeignKey(wcm => wcm.TeamBId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                entity.HasMany(wct => wct.TeamAFinalsMatches)
+                    .WithOne(wcf => wcf.TeamA)
+                    .HasForeignKey(wcf => wcf.TeamAId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasMany(wct => wct.TeamBFinalsMatches)
+                    .WithOne(wcf => wcf.TeamB)
+                    .HasForeignKey(wcf => wcf.TeamBId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
                 entity.ToTable(t =>
                 {
                     t.HasCheckConstraint(
@@ -189,7 +201,11 @@ namespace WCS.Infrastructure.Persistence
                     t.HasCheckConstraint(
                         "CK_WorldCupTeam_GroupCode",
                         "\"GroupCode\" IN ('A','B','C','D','E','F','G','H','I','J','K','L')");
-                    });
+
+                    t.HasCheckConstraint(
+                        "CK_WorldCupTeam_Points",
+                        "\"Points\" BETWEEN 0 AND 9");
+                });
             });
         }
 
@@ -225,6 +241,55 @@ namespace WCS.Infrastructure.Persistence
                     t.HasCheckConstraint(
                         "CK_WorldCupMatch_Round",
                         "\"Round\" BETWEEN 1 AND 3");
+
+                    t.HasCheckConstraint(
+                        "CK_WorldCupMatch_GoalsA",
+                        "\"GoalsA\" >= 0");
+
+                    t.HasCheckConstraint(
+                        "CK_WorldCupMatch_GoalsB",
+                        "\"GoalsB\" >= 0");
+                });
+            });
+        }
+
+        private void ConfigureWorldCupFinals(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<WorldCupFinals>(entity =>
+            {
+                entity.HasKey(x => x.WorldCupFinalsId);
+
+                entity.HasOne(wcf => wcf.TeamA)
+                    .WithMany(wct => wct.TeamAFinalsMatches)
+                    .HasForeignKey(wcm => wcm.TeamAId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(wcm => wcm.TeamB)
+                    .WithMany(wct => wct.TeamBFinalsMatches)
+                    .HasForeignKey(wcm => wcm.TeamBId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.ToTable(t =>
+                {
+                    t.HasCheckConstraint(
+                        "CK_WorldCupFinals_DifferentTeams",
+                        "\"TeamAId\" <> \"TeamBId\"");
+
+                    t.HasCheckConstraint(
+                        "CK_WorldCupFinals_Key",
+                        "\"Key\" BETWEEN 1 AND 16");
+
+                    t.HasCheckConstraint(
+                        "CK_WorldCupFinals_NextMatchKey",
+                        "\"NextMatchKey\" BETWEEN 1 AND 8");
+
+                    t.HasCheckConstraint(
+                        "CK_WorldCupFinals_GoalsA",
+                        "\"GoalsA\" >= 0");
+
+                    t.HasCheckConstraint(
+                        "CK_WorldCupFinals_GoalsB",
+                        "\"GoalsB\" >= 0");
                 });
             });
         }

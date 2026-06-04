@@ -1,12 +1,15 @@
-﻿namespace WCS.Application.DTO.DisplaysDTO
+﻿using WCS.Domain.Enums;
+
+namespace WCS.Application.DTO.DisplaysDTO
 {
-    // Lightweight DTO for displaying World Cup match information in the frontend.
-    public class WorldCupMatchDisplayDTO
+    // Lightweight DTO for displaying World Cup finals match information in the frontend.
+    public class WorldCupFinalsDisplayDTO
     {
         public int MatchId { get; set; }
-        public int Round { get; set; }
+        public int Key { get; set; }
+        public Stage Stage { get; set; }
         public DateOnly Date { get; set; }
-        public string GroupCode { get; set; } = string.Empty;
+        public int NextMatchKey { get; set; }
         public string TeamAName { get; set; } = string.Empty;
         public string TeamBName { get; set; } = string.Empty;
         public string? TeamACode { get; set; }  // 3-letter code (ARG, BRA, etc.)
