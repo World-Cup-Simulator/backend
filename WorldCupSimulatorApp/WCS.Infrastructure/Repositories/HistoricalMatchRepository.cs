@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using WCS.Application.DTO.RatingsDTO;
+using WCS.Domain.Entities;
 using WCS.Infrastructure.Persistence;
 using WCS.Infrastructure.Repositories.Interfaces;
 
@@ -54,6 +55,15 @@ namespace WCS.Infrastructure.Repositories
             }
 
             return ratingDataList;
+        }
+
+        public async Task InsertListAsync(List<HistoricalMatch> historicalMatches)
+        {
+            if (historicalMatches == null || historicalMatches.Count == 0)
+                return;
+
+            await _dbContext.HistoricalMatches.AddRangeAsync(historicalMatches);
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

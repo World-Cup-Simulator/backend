@@ -31,7 +31,7 @@ namespace WCS.Tests.Brackets
                 new SimpleMatchResultDTO { TeamAID = 3, TeamBID = 4, Winner = MatchOutcome.WinA }
                 };
 
-            var result = KnockoutsService.PerformSimpleKnockouts(matches, Simulate);
+            var result = _service.PerformSimpleKnockouts(matches, Simulate);
 
             result.Results.Should().HaveCount(2);
             result.NextMatches.Should().HaveCount(1); // 2 matches → 1 next round match
@@ -43,14 +43,14 @@ namespace WCS.Tests.Brackets
         [Fact]
         public void PerformSimpleKnockouts_WithNullMatches_ThrowsArgumentNullException()
         {
-            Action act = () => KnockoutsService.PerformSimpleKnockouts(null!, _ => new List<IMatchResult>());
+            Action act = () => _service.PerformSimpleKnockouts(null!, _ => new List<IMatchResult>());
             act.Should().Throw<ArgumentNullException>();
         }
 
         [Fact]
         public void PerformSimpleKnockouts_WithEmptyMatches_ThrowsArgumentException()
         {
-            Action act = () => KnockoutsService.PerformSimpleKnockouts(
+            Action act = () => _service.PerformSimpleKnockouts(
                 new List<KnockoutMatchDTO>(),
                 _ => new List<IMatchResult>());
 
@@ -79,7 +79,7 @@ namespace WCS.Tests.Brackets
                 };
 
             // Should throw because incomplete pair
-            Action act = () => KnockoutsService.PerformSimpleKnockouts(matches, Simulate);
+            Action act = () => _service.PerformSimpleKnockouts(matches, Simulate);
             act.Should().Throw<InvalidOperationException>();
         }
 
@@ -118,7 +118,7 @@ namespace WCS.Tests.Brackets
         public void ConvertGroupResultsToRatingData_WithValidResults_ReturnsRatingData()
         {
             var groupResults = CreateGroupResults();
-            var result = KnockoutsService.ConvertGroupResultsToRatingData(groupResults);
+            var result = _service.ConvertGroupResultsToRatingData(groupResults);
             result.Should().HaveCount(2);
             result.All(r => r.Stage == Stage.GroupStage).Should().BeTrue();
         }
@@ -126,7 +126,7 @@ namespace WCS.Tests.Brackets
         [Fact]
         public void ConvertGroupResultsToRatingData_WithNull_ThrowsArgumentNullException()
         {
-            Action act = () => KnockoutsService.ConvertGroupResultsToRatingData(null!);
+            Action act = () => _service.ConvertGroupResultsToRatingData(null!);
             act.Should().Throw<ArgumentNullException>();
         }
 

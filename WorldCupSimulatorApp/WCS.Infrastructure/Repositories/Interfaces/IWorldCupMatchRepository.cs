@@ -1,5 +1,6 @@
-﻿using WCS.Application.DTO.BracketsDTO;
+﻿using WCS.Application.DTO.DisplaysDTO;
 using WCS.Application.DTO.SimulatorsDTO;
+using WCS.Application.DTO.UpdatesDTO;
 
 namespace WCS.Infrastructure.Repositories.Interfaces
 {
@@ -13,5 +14,12 @@ namespace WCS.Infrastructure.Repositories.Interfaces
 
         // Retrieves matches filtered by group code, ordered by date.
         Task<List<WorldCupMatchDisplayDTO>> GetByGroupCodeAsync(string groupCode);
+
+        Task<List<int>> GetExistingIdsAsync(IEnumerable<int> ids);
+
+        // Bulk updates score for multiple matches.
+        Task UpdateScoresBatchAsync(List<WorldCupMatchUpdateDTO> updates);
+
+        Task SaveAsync();
     }
 }

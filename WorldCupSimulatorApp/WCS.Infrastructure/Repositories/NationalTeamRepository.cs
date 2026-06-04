@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using WCS.Application.DTO.RatingsDTO;
+using WCS.Application.DTO.UpdatesDTO;
 using WCS.Infrastructure.Persistence;
 using WCS.Infrastructure.Repositories.Interfaces;
 
@@ -12,6 +12,14 @@ namespace WCS.Infrastructure.Repositories
         public NationalTeamRepository(EFCoreDbContext dbContext)
         {
             _dbContext = dbContext;
+        }
+
+        public async Task<List<int>> GetExistingIdsAsync(IEnumerable<int> ids)
+        {
+            return await _dbContext.NationalTeams
+                .Where(t => ids.Contains(t.NationalTeamId))
+                .Select(t => t.NationalTeamId)
+                .ToListAsync();
         }
 
         public async Task UpdateRatingsStatsBatchAsync(List<NationalTeamStatsUpdateDTO> updates)

@@ -1,48 +1,53 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using WCS.Application.DTO.BracketsDTO;
 using WCS.Application.DTO.DisplaysDTO;
-using WCS.Application.DTO.SimulatorsDTO;
 using WCS.Application.DTO.UpdatesDTO;
+using WCS.Domain.Entities;
 using WCS.Infrastructure.Persistence;
 using WCS.Infrastructure.Repositories.Interfaces;
 
 namespace WCS.Infrastructure.Repositories
 {
-    public class WorldCupMatchRepository : IWorldCupMatchRepository
+    public class WorldCupFinalsRepository : IWorldCupFinalsRepository
     {
         private readonly EFCoreDbContext _dbContext;
 
-        public WorldCupMatchRepository(EFCoreDbContext dbContext)
+        public WorldCupFinalsRepository(EFCoreDbContext dbContext)
         {
             _dbContext = dbContext;
         }
 
         public async Task<List<int>> GetExistingIdsAsync(IEnumerable<int> ids)
         {
-            return await _dbContext.WorldCupMatches
-                .Where(t => ids.Contains(t.WorldCupMatchId))
-                .Select(t => t.WorldCupMatchId)
+            return await _dbContext.WorldCupFinals
+                .Where(t => ids.Contains(t.WorldCupFinalsId))
+                .Select(t => t.WorldCupFinalsId)
                 .ToListAsync();
         }
 
-        public async Task<List<SimulationMatchDTO>> GetAllForSimulationAsync()
+        public async Task<List<KnockoutMatchDTO>> GetAllForSimulationAsync()
         {
-            return await _dbContext.WorldCupMatches
+            return await _dbContext.WorldCupFinals
                 .AsNoTracking()
                 .Where(m => m.Played == false)
                 .Include(m => m.TeamA)
                     .ThenInclude(wt => wt.Team)
                 .Include(m => m.TeamB)
                     .ThenInclude(wt => wt.Team)
-                .Select(m => new SimulationMatchDTO
+                .Select(m => new KnockoutMatchDTO
                 {
+                    Key = m.Key,
+                    NextMatchKey = m.NextMatchKey,
                     TeamAID = m.TeamAId,
                     TeamA = m.TeamA.Team.Name,
+                    TeamAFifaRank = m.TeamA.Team.CurrentFifaRank,
                     AAccumulatedScores = m.TeamA.Team.AccumulatedScores,
                     AAccumulatedWeights = m.TeamA.Team.AccumulatedWeights,
                     AAccumulatedPenalties = m.TeamA.Team.AccumulatedPenalties,
                     AAccumulatedCount = m.TeamA.Team.AccumulatedCount,
                     TeamBID = m.TeamBId,
                     TeamB = m.TeamB.Team.Name,
+                    TeamBFifaRank = m.TeamB.Team.CurrentFifaRank,
                     BAccumulatedScores = m.TeamB.Team.AccumulatedScores,
                     BAccumulatedWeights = m.TeamB.Team.AccumulatedWeights,
                     BAccumulatedPenalties = m.TeamB.Team.AccumulatedPenalties,
@@ -51,21 +56,22 @@ namespace WCS.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<List<WorldCupMatchDisplayDTO>> GetAllForDisplayAsync()
+        public async Task<List<WorldCupFinalsDisplayDTO>> GetAllForDisplayAsync()
         {
-            return await _dbContext.WorldCupMatches
+            return await _dbContext.WorldCupFinals
                 .AsNoTracking()
                 .Include(m => m.TeamA)
                     .ThenInclude(wt => wt.Team)
                 .Include(m => m.TeamB)
                     .ThenInclude(wt => wt.Team)
-                .OrderBy(m => m.Date)
-                .Select(m => new WorldCupMatchDisplayDTO
+                .OrderBy(m => m.Key)
+                .Select(m => new WorldCupFinalsDisplayDTO
                 {
-                    MatchId = m.WorldCupMatchId,
-                    Round = m.Round,
+                    MatchId = m.WorldCupFinalsId,
+                    Key = m.Key,
+                    Stage = m.Stage,
                     Date = m.Date,
-                    GroupCode = m.GroupCode,
+                    NextMatchKey = m.NextMatchKey,
                     TeamAName = m.TeamA.Team.Name,
                     TeamBName = m.TeamB.Team.Name,
                     TeamACode = m.TeamA.Team.Code,
@@ -76,38 +82,21 @@ namespace WCS.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<List<WorldCupMatchDisplayDTO>> GetByGroupCodeAsync(string groupCode)
+        public async Task InsertListAsync(List<WorldCupFinals> finalsMatches)
         {
-            return await _dbContext.WorldCupMatches
-                .AsNoTracking()
-                .Include(m => m.TeamA)
-                    .ThenInclude(wt => wt.Team)
-                .Include(m => m.TeamB)
-                    .ThenInclude(wt => wt.Team)
-                .Where(m => m.GroupCode == groupCode)
-                .OrderBy(m => m.Date)
-                .Select(m => new WorldCupMatchDisplayDTO
-                {
-                    MatchId = m.WorldCupMatchId,
-                    Round = m.Round,
-                    Date = m.Date,
-                    GroupCode = m.GroupCode,
-                    TeamAName = m.TeamA.Team.Name,
-                    TeamBName = m.TeamB.Team.Name,
-                    TeamACode = m.TeamA.Team.Code,
-                    TeamBCode = m.TeamB.Team.Code,
-                    GoalsA = m.GoalsA,
-                    GoalsB = m.GoalsB
-                })
-                .ToListAsync();
+            if (finalsMatches == null || finalsMatches.Count == 0)
+                return;
+
+            await _dbContext.WorldCupFinals.AddRangeAsync(finalsMatches);
+            await _dbContext.SaveChangesAsync();
         }
 
         public async Task UpdateScoresBatchAsync(List<WorldCupMatchUpdateDTO> updates)
         {
             var matchIds = updates.Select(u => u.WorldCupMatchId).ToList();
-            var matches = await _dbContext.WorldCupMatches
-                .Where(m => matchIds.Contains(m.WorldCupMatchId))
-                .ToDictionaryAsync(m => m.WorldCupMatchId);
+            var matches = await _dbContext.WorldCupFinals
+                .Where(m => matchIds.Contains(m.WorldCupFinalsId))
+                .ToDictionaryAsync(m => m.WorldCupFinalsId);
 
             foreach (var update in updates)
             {

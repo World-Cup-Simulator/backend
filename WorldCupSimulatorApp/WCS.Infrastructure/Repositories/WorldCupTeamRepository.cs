@@ -1,5 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using WCS.Application.DTO.BracketsDTO;
+using WCS.Application.DTO.DisplaysDTO;
+using WCS.Application.DTO.UpdatesDTO;
 using WCS.Infrastructure.Persistence;
 using WCS.Infrastructure.Repositories.Interfaces;
 
@@ -14,6 +17,14 @@ namespace WCS.Infrastructure.Repositories
             _dbContext = dbContext;
         }
 
+        public async Task<List<int>> GetExistingIdsAsync(IEnumerable<int> ids)
+        {
+            return await _dbContext.WorldCupTeams
+                .Where(t => ids.Contains(t.WorldCupTeamId))
+                .Select(t => t.WorldCupTeamId)
+                .ToListAsync();
+        }
+
         public async Task<List<TeamGroupSummaryDTO>> GetAllForGroupStageAsync()
         {
             return await _dbContext.WorldCupTeams
@@ -24,7 +35,7 @@ namespace WCS.Infrastructure.Repositories
                     wt.Team.Name,
                     wt.Team.CurrentFifaRank,
                     wt.GroupCode,
-                    wt.PositionOrder,
+                    wt.Points,
                     wt.Team.AccumulatedScores,
                     wt.Team.AccumulatedWeights,
                     wt.Team.AccumulatedPenalties,
@@ -39,6 +50,7 @@ namespace WCS.Infrastructure.Repositories
                 .AsNoTracking()
                 .Include(wt => wt.Team)
                 .OrderBy(wt => wt.GroupCode)
+                .ThenByDescending(wt => wt.Points)
                 .ThenBy(wt => wt.PositionOrder)
                 .ToListAsync();
 
@@ -51,10 +63,31 @@ namespace WCS.Infrastructure.Repositories
                     {
                         TeamName = wt.Team.Name,
                         TeamCode = wt.Team.Code,
-                        PositionOrder = wt.PositionOrder
+                        Points = wt.Points
                     }).ToList()
                 })
                 .ToList();
+        }
+
+        public async Task UpdatePointsBatchAsync(List<WorldCupTeamUpdateDTO> updates)
+        {
+            var teamIds = updates.Select(u => u.WorldCupTeamId).ToList();
+            var teams = await _dbContext.WorldCupTeams
+                .Where(m => teamIds.Contains(m.WorldCupTeamId))
+                .ToDictionaryAsync(m => m.WorldCupTeamId);
+
+            foreach (var update in updates)
+            {
+                if (teams.TryGetValue(update.WorldCupTeamId, out var team))
+                {
+                    team.Points = update.Points;
+                }
+            }
+        }
+
+        public async Task SaveAsync()
+        {
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

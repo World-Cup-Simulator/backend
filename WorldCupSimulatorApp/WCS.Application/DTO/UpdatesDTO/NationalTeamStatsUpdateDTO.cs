@@ -1,4 +1,4 @@
-﻿namespace WCS.Application.DTO.RatingsDTO
+﻿namespace WCS.Application.DTO.UpdatesDTO
 {
     // DTO for bulk updating NationalTeam accumulated statistics.
     public class NationalTeamStatsUpdateDTO

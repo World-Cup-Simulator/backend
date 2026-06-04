@@ -1,4 +1,4 @@
-﻿using WCS.Application.DTO.RatingsDTO;
+﻿using WCS.Application.DTO.UpdatesDTO;
 
 namespace WCS.Infrastructure.Repositories.Interfaces
 {
@@ -7,6 +7,8 @@ namespace WCS.Infrastructure.Repositories.Interfaces
 
         // Bulk updates accumulated statistics for multiple teams.
         Task UpdateRatingsStatsBatchAsync(List<NationalTeamStatsUpdateDTO> updates);
+
+        Task<List<int>> GetExistingIdsAsync(IEnumerable<int> ids);
 
         Task SaveAsync();
     }

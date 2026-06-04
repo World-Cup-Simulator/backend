@@ -1,4 +1,6 @@
 ﻿using WCS.Application.DTO.BracketsDTO;
+using WCS.Application.DTO.DisplaysDTO;
+using WCS.Application.DTO.UpdatesDTO;
 
 namespace WCS.Infrastructure.Repositories.Interfaces
 {
@@ -9,5 +11,12 @@ namespace WCS.Infrastructure.Repositories.Interfaces
 
         // Retrieves all groups with teams for frontend display (seeding information).
         Task<List<GroupSeedDisplayDTO>> GetAllGroupsForDisplayAsync();
+
+        // Bulk updates points for multiple teams.
+        Task UpdatePointsBatchAsync(List<WorldCupTeamUpdateDTO> updates);
+
+        Task<List<int>> GetExistingIdsAsync(IEnumerable<int> ids);
+
+        Task SaveAsync();
     }
 }
