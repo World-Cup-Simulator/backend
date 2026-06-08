@@ -5,6 +5,7 @@ using WCS.Application.Services.Probabilities;
 using WCS.Application.Services.Ratings;
 using WCS.Application.Services.Simulators;
 using WCS.Domain.Entities;
+using WCS.Infrastructure.Data.Seeds;
 using WCS.Infrastructure.Persistence;
 using WCS.Infrastructure.Repositories;
 using WCS.Infrastructure.Repositories.Interfaces;
@@ -32,6 +33,7 @@ builder.Services.AddDbContext<EFCoreDbContext>(options =>
 builder.Services.Configure<RatingWeightsOptions>(
     builder.Configuration.GetSection("RatingWeights"));
 
+builder.Services.AddHostedService<CsvSeedService>();
 builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddScoped<IMatchProbabilityService, MatchProbabilityService>();
 builder.Services.AddScoped<ISimulationService, SimulationService>();
@@ -59,11 +61,5 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
-
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<EFCoreDbContext>();
-      db.Database.Migrate();
-}
 
 app.Run();

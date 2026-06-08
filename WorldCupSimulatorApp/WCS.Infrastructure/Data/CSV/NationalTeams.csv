@@ -1,0 +1,212 @@
+﻿NationalTeamId;Name;Code;CurrentFifaRank
+1;Argentina;ARG;1
+2;España;ESP;2
+3;Francia;FRA;3
+4;Inglaterra;ENG;4
+5;Portugal;POR;5
+6;Brasil;BRA;6
+7;Marruecos;MAR;7
+8;Países Bajos;NED;8
+9;Bélgica;BEL;9
+10;Alemania;GER;10
+11;Croacia;CRO;11
+12;Italia;ITA;12
+13;Colombia;COL;13
+14;Senegal;SEN;14
+15;México;MEX;15
+16;Estados Unidos;USA;16
+17;Uruguay;URU;17
+18;Japón;JPN;18
+19;Suiza;SUI;19
+20;Irán;IRN;20
+21;Dinamarca;DEN;21
+22;Turquía;TUR;22
+23;Austria;AUT;23
+24;Ecuador;ECU;24
+25;Corea del Sur;KOR;25
+26;Nigeria;NGA;26
+27;Australia;AUS;27
+28;Argelia;ALG;28
+29;Egipto;EGY;29
+30;Canadá;CAN;30
+31;Noruega;NOR;31
+32;Ucrania;UKR;32
+33;Costa de Marfil;CIV;33
+34;Panamá;PAN;34
+35;Polonia;POL;35
+36;Rusia;RUS;36
+37;Gales;WAL;37
+38;Suecia;SWE;38
+39;Serbia;SRB;39
+40;Paraguay;PAR;40
+41;República Checa;CZE;41
+42;Hungría;HUN;42
+43;Escocia;SCO;43
+44;Camerún;CMR;44
+45;RD Congo;COD;45
+46;Túnez;TUN;46
+47;Grecia;GRE;47
+48;Eslovaquia;SVK;48
+49;Venezuela;VEN;49
+50;Uzbekistán;UZB;50
+51;Costa Rica;CRC;51
+52;Perú;PER;52
+53;Malí;MLI;53
+54;Chile;CHI;54
+55;Qatar;QAT;55
+56;Irak;IRQ;56
+57;Rumanía;ROU;57
+58;Eslovenia;SVN;58
+59;Irlanda;IRL;59
+60;Sudáfrica;RSA;60
+61;Arabia Saudita;KSA;61
+62;Burkina Faso;BFA;62
+63;Jordania;JOR;63
+64;Bosnia y Herzegovina;BIH;64
+65;Albania;ALB;65
+66;Honduras;HON;66
+67;Emiratos Árabes Unidos;UAE;67
+68;Cabo Verde;CPV;68
+69;Macedonia del Norte;MKD;69
+70;Irlanda del Norte;NIR;70
+71;Jamaica;JAM;71
+72;Georgia;GEO;72
+73;Ghana;GHA;73
+74;Finlandia;FIN;74
+75;Islandia;ISL;75
+76;Israel;ISR;76
+77;Bolivia;BOL;77
+78;Kosovo;KVX;78
+79;Omán;OMA;79
+80;Montenegro;MNE;80
+81;Haití;HAI;81
+82;Guinea;GUI;82
+83;Curazao;CUW;83
+84;Siria;SYR;84
+85;Nueva Zelanda;NZL;85
+86;Bulgaria;BUL;86
+87;Gabón;GAB;87
+88;Uganda;UGA;88
+89;Angola;ANG;89
+90;Benín;BEN;90
+91;Baréin;BHR;91
+92;Zambia;ZAM;92
+93;Tailandia;THA;93
+94;China;CHN;94
+95;Palestina;PLE;95
+96;Guatemala;GUA;96
+97;Bielorrusia;BLR;97
+98;Luxemburgo;LUX;98
+99;Vietnam;VIE;99
+100;Mozambique;MOZ;100
+101;El Salvador;SLV;101
+102;Trinidad y Tobago;TRI;102
+103;Tayikistán;TJK;103
+104;Madagascar;MAD;104
+105;Guinea Ecuatorial;EQG;105
+106;Armenia;ARM;106
+107;Kirguistán;KGZ;107
+108;Comoras;COM;108
+109;Kazajistán;KAZ;109
+110;Kenia;KEN;110
+111;Libia;LBY;111
+112;Tanzania;TAN;112
+113;Níger;NIG;113
+114;Libano;LIB;114
+115;Mauritania;MTN;115
+116;Gambia;GAM;116
+117;Sudán;SDN;117
+118;Corea del Norte;PRK;118
+119;Sierra Leona;SLE;119
+120;Namibia;NAM;120
+121;Togo;TOG;121
+122;Indonesia;IDN;122
+123;Islas Feroe;FRO;123
+124;Azerbaiyán;AZE;124
+125;Surinam;SUR;125
+126;Chipre;CYP;126
+127;Malaui;MWI;127
+128;Ruanda;RWA;128
+129;Estonia;EST;129
+130;Zimbabue;ZIM;130
+131;Nicaragua;NCA;131
+132;Guinea-Bissáu;GNB;132
+133;Congo;COG;133
+134;Kuwait;KUW;134
+135;Filipinas;PHI;135
+136;Letonia;LVA;136
+137;India;IND;137
+138;Malasia;MAS;138
+139;República Centroafricana;CTA;139
+140;Liberia;LBR;140
+141;Turkmenistán;TKM;141
+142;Burundi;BDI;142
+143;República Dominicana;DOM;143
+144;Etiopía;ETH;144
+145;Lesoto;LES;145
+146;Yemen;YEM;146
+147;Botsuana;BOT;147
+148;Singapur;SIN;148
+149;Lituania;LTU;149
+150;Guyana;GUY;150
+151;Nueva Caledonia;NCL;151
+152;San Cristóbal y Nieves;SKN;152
+153;Islas Salomón;SOL;153
+154;Fiyi;FIJ;154
+155;Hong Kong;HKG;155
+156;Puerto Rico;PUR;156
+157;Tahití;TAH;157
+158;Myanmar;MYA;158
+159;Moldavia;MDA;159
+160;Vanuatu;VAN;160
+161;Antigua y Barbuda;ATG;161
+162;Malta;MLT;162
+163;Granada;GRN;163
+164;Cuba;CUB;164
+165;Esuatini;SWZ;165
+166;Afganistán;AFG;166
+167;Bermudas;BER;167
+168;Santa Lucía;LCA;168
+169;Papúa Nueva Guinea;PNG;169
+170;Sudán del Sur;SSD;170
+171;San Vicente y las Granadinas;VIN;171
+172;Andorra;AND;172
+173;Maldivas;MDV;173
+174;Taiwán;TPE;174
+175;Montserrat;MSR;175
+176;Camboya;CAM;176
+177;Nepal;NEP;177
+178;Mauricio;MRI;178
+179;Barbados;BRB;179
+180;Belice;BLZ;180
+181;Bangladesh;BAN;181
+182;Dominica;DMA;182
+183;Chad;CHA;183
+184;Eritrea;ERI;184
+185;Laos;LAO;185
+186;Mongolia;MGL;186
+187;Islas Cook;COK;187
+188;Aruba;ARU;188
+189;Samoa;SAM;189
+190;Bután;BHU;190
+191;Sri Lanka;SRI;191
+192;Samoa Americana;ASA;192
+193;Brunéi;BRU;193
+194;Macao;MAC;194
+195;Islas Caimán;CAY;195
+196;Santo Tomé y Príncipe;STP;196
+197;Yibuti;DJI;197
+198;Somalia;SOM;198
+199;Tonga;TGA;199
+200;Pakistán;PAK;200
+201;Timor Oriental;TLS;201
+202;Guam;GUM;202
+203;Gibraltar;GIB;203
+204;Seychelles;SEY;204
+205;Islas Turcas y Caicos;TCA;205
+206;Liechtenstein;LIE;206
+207;Bahamas;BAH;207
+208;Islas Vírgenes de EE.UU.;VIR;208
+209;Islas Vírgenes Británicas;VGB;209
+210;Anguila;AIA;210
+211;San Marino;SMR;211
