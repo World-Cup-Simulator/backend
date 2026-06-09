@@ -31,7 +31,7 @@ namespace WCS.Infrastructure.Repositories
                 .AsNoTracking()
                 .Include(wt => wt.Team)
                 .Select(wt => new TeamGroupSummaryDTO(
-                    wt.TeamId,
+                    wt.WorldCupTeamId,
                     wt.Team.Name,
                     wt.Team.CurrentFifaRank,
                     wt.GroupCode,

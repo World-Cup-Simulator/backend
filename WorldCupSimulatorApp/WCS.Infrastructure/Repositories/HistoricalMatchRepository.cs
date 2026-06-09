@@ -34,7 +34,7 @@ namespace WCS.Infrastructure.Repositories
                     GoalsScored = match.GoalsA,
                     GoalsConceded = match.GoalsB,
                     OpponentFifaRank = match.TeamB.CurrentFifaRank,
-                    OpponentAttackRating = 0,
+                    OpponentAttackRating = match.TeamB.AttackRating,
                     Date = match.Date,
                     Competition = match.Competition,
                     Stage = match.Stage
@@ -47,7 +47,7 @@ namespace WCS.Infrastructure.Repositories
                     GoalsScored = match.GoalsB,
                     GoalsConceded = match.GoalsA,
                     OpponentFifaRank = match.TeamA.CurrentFifaRank,
-                    OpponentAttackRating = 0,
+                    OpponentAttackRating = match.TeamA.AttackRating,
                     Date = match.Date,
                     Competition = match.Competition,
                     Stage = match.Stage
