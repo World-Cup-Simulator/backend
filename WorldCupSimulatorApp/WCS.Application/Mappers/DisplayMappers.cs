@@ -29,13 +29,17 @@ namespace WCS.Application.Mappers
             return new GroupTableDisplayDTO
             {
                 GroupCode = group.GroupCode,
-                Teams = group.Teams.Select(t => new GroupTableTeamDisplayDTO
-                {
-                    Name = t.Name,
-                    Points = t.Points,
-                    GoalsScored = t.GoalsScored,
-                    GoalsConceded = t.GoalsConceded
-                }).ToList()
+                Teams = group.Teams
+                    .OrderByDescending(t => t.Points)
+                    .ThenByDescending(t => t.GoalDifference)
+                    .ThenByDescending(t => t.GoalsScored)
+                    .Select(t => new GroupTableTeamDisplayDTO
+                    {
+                        Name = t.Name,
+                        Points = t.Points,
+                        GoalsScored = t.GoalsScored,
+                        GoalsConceded = t.GoalsConceded
+                    }).ToList()
             };
         }
 

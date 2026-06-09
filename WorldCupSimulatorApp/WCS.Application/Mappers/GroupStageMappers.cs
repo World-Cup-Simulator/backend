@@ -15,6 +15,7 @@ namespace WCS.Application.Mappers
                 TeamA = result.TeamA,
                 TeamB = result.TeamB,
                 Winner = result.Winner,
+                Date = result.Date,
                 TeamAID = result.TeamAID,
                 TeamBID = result.TeamBID,
                 OutcomeProbability = result.OutcomeProbability

@@ -2,6 +2,7 @@
 {
     public class SimulationMatchDTO
     {
+        public DateOnly Date { get; set; }
         public int TeamAID { get; set; }
         public string TeamA { get; set; } = string.Empty;
         public double AAccumulatedScores { get; set; }

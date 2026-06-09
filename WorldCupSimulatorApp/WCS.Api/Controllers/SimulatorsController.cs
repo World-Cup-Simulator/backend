@@ -72,7 +72,11 @@ namespace WCS.Api.Controllers
 
             var response = new GroupStageSimulationResponse
             {
-                Results = results.Select(DisplayMappers.MapGroupResult).ToList(),
+                Results = results
+                    .OrderBy(r => r.GroupCode)
+                    .ThenBy(r => r.Date)
+                    .Select(DisplayMappers.MapGroupResult)
+                    .ToList(),
                 FinalStandings = groups.Select(DisplayMappers.MapGroupTable).ToList(),
                 KnockoutBracket = knockoutBracket,
                 RatingData = ratingData
@@ -82,7 +86,7 @@ namespace WCS.Api.Controllers
         }
 
 
-        [HttpGet("knockouts/simple")]
+        [HttpPost("knockouts/simple")]
         [ProducesResponseType(typeof(KnockoutSimulationResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public IActionResult SimulateSimpleKnockouts(
@@ -117,7 +121,7 @@ namespace WCS.Api.Controllers
             return Ok(response);
         }
 
-        [HttpGet("knockouts/adaptive")]
+        [HttpPost("knockouts/adaptive")]
         [ProducesResponseType(typeof(KnockoutSimulationResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public IActionResult SimulateAdaptiveKnockouts(

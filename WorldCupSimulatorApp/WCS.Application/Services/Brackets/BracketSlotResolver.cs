@@ -5,16 +5,26 @@ using WCS.Domain.Enums;
 namespace WCS.Application.Services.Brackets
 {
     // Resolves bracket slot definitions into concrete KnockoutMatchDTO instances.
-    // Handles third-place team assignment using a greedy strategy.
+    // Handles third-place team assignment using backtracking algorithm.
     public class BracketSlotResolver
     {
         private readonly IReadOnlyDictionary<string, GroupRanking> _rankings;
         private readonly HashSet<string> _qualifiedThirdGroups;
-        private readonly HashSet<string> _assignedThirdGroups = new();
+        private readonly Dictionary<int, (string GroupCode, GroupTableEntry Team)> _thirdPlaceAssignments;
+        private readonly List<ThirdPlaceRequirement> _thirdPlaceRequirements;
+
+        // Internal representation of a third-place slot requirement
+        private record ThirdPlaceRequirement(
+            int MatchKey,
+            string[] EligibleGroups,
+            bool IsTeamA
+        );
 
         public BracketSlotResolver(IEnumerable<GroupRanking> rankings)
         {
             _rankings = rankings.ToDictionary(r => r.GroupCode);
+            _thirdPlaceAssignments = new Dictionary<int, (string GroupCode, GroupTableEntry Team)>();
+            _thirdPlaceRequirements = new List<ThirdPlaceRequirement>();
 
             // Select the 8 best third-placed teams across all groups
             _qualifiedThirdGroups = rankings
@@ -27,8 +37,87 @@ namespace WCS.Application.Services.Brackets
                 .ToHashSet();
         }
 
+        // Resolves all bracket slots into concrete knockout matches.
+        public IEnumerable<KnockoutMatchDTO> ResolveAll(IEnumerable<BracketSlot> slots)
+        {
+            var slotList = slots.ToList();
+
+            // Phase 1: Collect all third-place requirements
+            CollectThirdPlaceRequirements(slotList);
+
+            // Phase 2: Sort by constraint tightness (fewest eligible groups first) for optimization
+            _thirdPlaceRequirements.Sort((a, b) => a.EligibleGroups.Length.CompareTo(b.EligibleGroups.Length));
+
+            // Phase 3: Run backtracking algorithm to assign third-place teams
+            var availableGroups = new HashSet<string>(_qualifiedThirdGroups);
+            if (!TryAssignThirdPlaceTeams(0, availableGroups))
+            {
+                throw new InvalidOperationException(
+                    "Unable to assign third-place teams to bracket slots. " +
+                    "This occurs when group results create an impossible combination of " +
+                    $"qualified third-place teams ({string.Join(", ", _qualifiedThirdGroups)}). " +
+                    "Retry the simulation to get different group standings.");
+            }
+
+            // Phase 4: Resolve all slots into concrete matches
+            return slotList.Select(Resolve);
+        }
+
+        // Collects all third-place slot requirements from bracket definitions
+        private void CollectThirdPlaceRequirements(List<BracketSlot> slots)
+        {
+            foreach (var slot in slots)
+            {
+                if (slot.HomeTeamSlot is BestThirdSlot homeBestThird)
+                {
+                    _thirdPlaceRequirements.Add(new ThirdPlaceRequirement(
+                        slot.MatchKey,
+                        homeBestThird.EligibleGroups,
+                        IsTeamA: true));
+                }
+
+                if (slot.AwayTeamSlot is BestThirdSlot awayBestThird)
+                {
+                    _thirdPlaceRequirements.Add(new ThirdPlaceRequirement(
+                        slot.MatchKey,
+                        awayBestThird.EligibleGroups,
+                        IsTeamA: false));
+                }
+            }
+        }
+
+        // Backtracking algorithm to assign third-place teams to slots
+        private bool TryAssignThirdPlaceTeams(int index, HashSet<string> availableGroups)
+        {
+            // Base case: all requirements assigned successfully
+            if (index >= _thirdPlaceRequirements.Count)
+                return true;
+
+            var req = _thirdPlaceRequirements[index];
+
+            var candidates = availableGroups.Intersect(req.EligibleGroups).ToList();
+
+            // Try each available group that's eligible for this slot
+            foreach (var group in candidates)
+            {
+                // Assign this group to this requirement
+                _thirdPlaceAssignments[req.MatchKey] = (group, _rankings[group].RankedTeams[2]);
+                availableGroups.Remove(group);
+
+                // Recursively try to assign remaining requirements
+                if (TryAssignThirdPlaceTeams(index + 1, availableGroups))
+                    return true;
+
+                // Backtrack: undo assignment and try next option
+                availableGroups.Add(group);
+                _thirdPlaceAssignments.Remove(req.MatchKey);
+            }
+
+            return false; // No valid assignment found for this branch
+        }
+
         // Resolves a bracket slot into a concrete knockout match.
-        public KnockoutMatchDTO Resolve(BracketSlot slot)
+        private KnockoutMatchDTO Resolve(BracketSlot slot)
         {
             var match = new KnockoutMatchDTO
             {
@@ -39,6 +128,7 @@ namespace WCS.Application.Services.Brackets
             ResolveTeamSlot(slot.AwayTeamSlot, match, isTeamA: false);
             return match;
         }
+
         private void ResolveTeamSlot(TeamSlot slot, KnockoutMatchDTO match, bool isTeamA)
         {
             switch (slot)
@@ -47,10 +137,9 @@ namespace WCS.Application.Services.Brackets
                     var team = GetTeamFromPosition(positionSlot.GroupCode, positionSlot.Position);
                     PopulateTeamProperties(match, team, isTeamA);
                     break;
-                case BestThirdSlot bestThirdSlot:
-                    var thirdTeam = ResolveBestThirdTeam(bestThirdSlot.EligibleGroups)
-                        ?? throw new InvalidOperationException(
-                            $"No eligible third-place team found for match {match.Key}.");
+                case BestThirdSlot:
+                    // Third-place team was pre-assigned during backtracking
+                    var (groupCode, thirdTeam) = _thirdPlaceAssignments[match.Key];
                     PopulateTeamProperties(match, thirdTeam, isTeamA);
                     break;
                 default:
@@ -72,22 +161,8 @@ namespace WCS.Application.Services.Brackets
             };
             return ranking.RankedTeams[index];
         }
-        private GroupTableEntry? ResolveBestThirdTeam(string[] eligibleGroups)
-        {
-            // Find the best available third-place team from eligible groups
-            var candidates = eligibleGroups
-                .Where(g => _qualifiedThirdGroups.Contains(g) && !_assignedThirdGroups.Contains(g))
-                .Select(g => new { GroupCode = g, Team = _rankings[g].RankedTeams[2] })
-                .OrderByDescending(x => x.Team.Points)
-                .ThenByDescending(x => x.Team.GoalDifference)
-                .ThenByDescending(x => x.Team.GoalsScored)
-                .ToList();
-            if (candidates.Count == 0)
-                return null;
-            var selected = candidates.First();
-            _assignedThirdGroups.Add(selected.GroupCode);
-            return selected.Team;
-        }
+
+
         private static void PopulateTeamProperties(KnockoutMatchDTO match, GroupTableEntry team, bool isTeamA)
         {
             if (isTeamA)
