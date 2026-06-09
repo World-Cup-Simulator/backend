@@ -5,7 +5,7 @@
         public int Key { get; set; }
 
         //Represents Enum Stage, 1 will be added as the tournament progresses.
-        public int Stage { get; set; } = 0;
+        public int Stage { get; set; } = 1;
         public int NextMatchKey { get; set; }
         public int TeamAID { get; set; }
         public string TeamA { get; set; } = string.Empty;

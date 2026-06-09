@@ -50,9 +50,7 @@ namespace WCS.Application.Services.Brackets
             var resolver = new BracketSlotResolver(groupRankings);
 
             // Resolve each slot definition to a concrete match with teams assigned
-            return BracketDefinitions.RoundOf32
-                .Select(slot => resolver.Resolve(slot))
-                .ToList();
+            return resolver.ResolveAll(BracketDefinitions.RoundOf32).ToList();
         }
 
         private static GroupTable CreateGroupTable(IGrouping<string, TeamGroupSummaryDTO> group)

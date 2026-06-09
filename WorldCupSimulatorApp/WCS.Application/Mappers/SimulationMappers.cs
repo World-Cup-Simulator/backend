@@ -15,7 +15,8 @@ namespace WCS.Application.Mappers
                 TeamA = match.TeamA,
                 TeamB = match.TeamB,
                 TeamAID = match.TeamAID,
-                TeamBID = match.TeamBID
+                TeamBID = match.TeamBID,
+                Date = match.Date
             };
 
             (result.Winner, result.OutcomeProbability) = outcome switch
@@ -37,6 +38,7 @@ namespace WCS.Application.Mappers
                 TeamB = match.TeamB,
                 TeamAID = match.TeamAID,
                 TeamBID = match.TeamBID,
+                Date = match.Date,
                 GoalsA = score.GoalsA,
                 GoalsB = score.GoalsB,
                 ScoreProbability = score.Probability,

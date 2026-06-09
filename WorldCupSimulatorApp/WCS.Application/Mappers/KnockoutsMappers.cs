@@ -115,26 +115,48 @@ namespace WCS.Application.Mappers
             IMatchResult result, bool isTeamA)
         {
             bool winnerIsTeamA = result.Winner == MatchOutcome.WinA;
+            var adaptiveResult = result as AdaptativeMatchResultDTO;
 
             if (isTeamA)
             {
                 nextMatch.TeamAID = winnerIsTeamA ? sourceMatch.TeamAID : sourceMatch.TeamBID!.Value;
                 nextMatch.TeamA = winnerIsTeamA ? sourceMatch.TeamA : sourceMatch.TeamB;
                 nextMatch.TeamAFifaRank = winnerIsTeamA ? sourceMatch.TeamAFifaRank : sourceMatch.TeamBFifaRank;
-                nextMatch.AAccumulatedScores = winnerIsTeamA ? sourceMatch.AAccumulatedScores : sourceMatch.BAccumulatedScores;
-                nextMatch.AAccumulatedWeights = winnerIsTeamA ? sourceMatch.AAccumulatedWeights : sourceMatch.BAccumulatedWeights;
-                nextMatch.AAccumulatedPenalties = winnerIsTeamA ? sourceMatch.AAccumulatedPenalties : sourceMatch.BAccumulatedPenalties;
-                nextMatch.AAccumulatedCount = winnerIsTeamA ? sourceMatch.AAccumulatedCount : sourceMatch.BAccumulatedCount;
+                if (adaptiveResult != null)
+                {
+                    nextMatch.AAccumulatedScores = adaptiveResult.WinnerAccumulatedScores;
+                    nextMatch.AAccumulatedWeights = adaptiveResult.WinnerAccumulatedWeights;
+                    nextMatch.AAccumulatedPenalties = adaptiveResult.WinnerAccumulatedPenalties;
+                    nextMatch.AAccumulatedCount = adaptiveResult.WinnerAccumulatedCount;
+                }
+                else
+                {
+                    // Fall back to source match stats for simple results
+                    nextMatch.AAccumulatedScores = winnerIsTeamA ? sourceMatch.AAccumulatedScores : sourceMatch.BAccumulatedScores;
+                    nextMatch.AAccumulatedWeights = winnerIsTeamA ? sourceMatch.AAccumulatedWeights : sourceMatch.BAccumulatedWeights;
+                    nextMatch.AAccumulatedPenalties = winnerIsTeamA ? sourceMatch.AAccumulatedPenalties : sourceMatch.BAccumulatedPenalties;
+                    nextMatch.AAccumulatedCount = winnerIsTeamA ? sourceMatch.AAccumulatedCount : sourceMatch.BAccumulatedCount;
+                }
+
             }
             else
             {
                 nextMatch.TeamBID = winnerIsTeamA ? sourceMatch.TeamAID : sourceMatch.TeamBID!.Value;
                 nextMatch.TeamB = winnerIsTeamA ? sourceMatch.TeamA : sourceMatch.TeamB;
                 nextMatch.TeamBFifaRank = winnerIsTeamA ? sourceMatch.TeamAFifaRank : sourceMatch.TeamBFifaRank;
+                if (adaptiveResult != null)
+                {
+                    nextMatch.BAccumulatedScores = adaptiveResult.WinnerAccumulatedScores;
+                    nextMatch.BAccumulatedWeights = adaptiveResult.WinnerAccumulatedWeights;
+                    nextMatch.BAccumulatedPenalties = adaptiveResult.WinnerAccumulatedPenalties;
+                    nextMatch.BAccumulatedCount = adaptiveResult.WinnerAccumulatedCount;
+                }
+                // Fall back to source match stats for simple results
                 nextMatch.BAccumulatedScores = winnerIsTeamA ? sourceMatch.AAccumulatedScores : sourceMatch.BAccumulatedScores;
                 nextMatch.BAccumulatedWeights = winnerIsTeamA ? sourceMatch.AAccumulatedWeights : sourceMatch.BAccumulatedWeights;
                 nextMatch.BAccumulatedPenalties = winnerIsTeamA ? sourceMatch.AAccumulatedPenalties : sourceMatch.BAccumulatedPenalties;
                 nextMatch.BAccumulatedCount = winnerIsTeamA ? sourceMatch.AAccumulatedCount : sourceMatch.BAccumulatedCount;
+
             }
         }
 

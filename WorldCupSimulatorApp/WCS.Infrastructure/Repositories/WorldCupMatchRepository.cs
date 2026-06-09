@@ -35,6 +35,7 @@ namespace WCS.Infrastructure.Repositories
                     .ThenInclude(wt => wt.Team)
                 .Select(m => new SimulationMatchDTO
                 {
+                    Date = m.Date,
                     TeamAID = m.TeamAId,
                     TeamA = m.TeamA.Team.Name,
                     AAccumulatedScores = m.TeamA.Team.AccumulatedScores,
