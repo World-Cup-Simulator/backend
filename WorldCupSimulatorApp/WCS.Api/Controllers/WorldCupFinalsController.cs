@@ -29,7 +29,7 @@ namespace WCS.Api.Controllers
             return Ok(matches);
         }
 
-        [HttpGet]
+        [HttpGet("simulation")]
         [ProducesResponseType(typeof(List<KnockoutMatchDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAllForSimulation()

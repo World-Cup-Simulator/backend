@@ -24,6 +24,7 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddOpenApi();
+builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<EFCoreDbContext>(options =>
 {
@@ -44,6 +45,7 @@ builder.Services.AddScoped<IWorldCupTeamRepository, WorldCupTeamRepository>();
 builder.Services.AddScoped<IWorldCupFinalsRepository, WorldCupFinalsRepository>();
 builder.Services.AddScoped<IGroupStageService, GroupStageService>();
 builder.Services.AddScoped<IKnockoutsService, KnockoutsService>();
+builder.Services.AddHostedService<InitialRatingsCalculationService>();
 
 var app = builder.Build();
 
