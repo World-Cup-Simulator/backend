@@ -72,7 +72,8 @@ namespace WCS.Infrastructure.Repositories
                     TeamACode = m.TeamA.Team.Code,
                     TeamBCode = m.TeamB.Team.Code,
                     GoalsA = m.GoalsA,
-                    GoalsB = m.GoalsB
+                    GoalsB = m.GoalsB,
+                    Played = m.Played
                 })
                 .ToListAsync();
         }
@@ -98,7 +99,8 @@ namespace WCS.Infrastructure.Repositories
                     TeamACode = m.TeamA.Team.Code,
                     TeamBCode = m.TeamB.Team.Code,
                     GoalsA = m.GoalsA,
-                    GoalsB = m.GoalsB
+                    GoalsB = m.GoalsB,
+                    Played = m.Played
                 })
                 .ToListAsync();
         }

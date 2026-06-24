@@ -13,18 +13,16 @@ namespace WCS.Api.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        private readonly IHistoricalMatchRepository _historicalMatchRepository;
         private readonly IWorldCupFinalsRepository _worldCupFinalsRepository;
         private readonly IWorldCupMatchRepository _worldCupMatchRepository;
         private readonly INationalTeamRepository _nationalTeamRepository;
         private readonly IWorldCupTeamRepository _worldCupTeamRepository;
 
-        public AdminController(IConfiguration configuration, IHistoricalMatchRepository historicalMatchRepository,
+        public AdminController(IConfiguration configuration,
             IWorldCupFinalsRepository worldCupFinalsRepository, IWorldCupMatchRepository worldCupMatchRepository,
             INationalTeamRepository nationalTeamRepository, IWorldCupTeamRepository worldCupTeamRepository)
         {
             _configuration = configuration;
-            _historicalMatchRepository = historicalMatchRepository;
             _worldCupFinalsRepository = worldCupFinalsRepository;
             _worldCupMatchRepository = worldCupMatchRepository;
             _nationalTeamRepository = nationalTeamRepository;
@@ -35,59 +33,7 @@ namespace WCS.Api.Controllers
         {
             return apiKey == _configuration["AdminApiKey:ApiKey"];
         }
-
-        [HttpPost("historical-matches")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> PostHistoricalMatch(
-            [FromHeader(Name = "API-Key")] string apiKey,
-            [FromBody] List<HistoricalMatchCreateDTO> matches)
-        {
-            if (!IsAuthorized(apiKey))
-                return Unauthorized(new { message = "Invalid API key." });
-
-            if (matches == null || matches.Count == 0)
-                return BadRequest(new { message = "Matches list cannot be empty." });
-
-            // Validate Team Ids
-            var teamIds = matches
-                .SelectMany(m => new[] { m.TeamAId, m.TeamBId })
-                .Distinct()
-                .ToList();
-
-            var existingIds = await _worldCupTeamRepository.GetExistingIdsAsync(teamIds);
-            var invalidIds = teamIds.Except(existingIds);
-
-            if (invalidIds.Any())
-            {
-                return BadRequest(new
-                {
-                    message = $"Invalid team ids: {string.Join(", ", invalidIds)}"
-                });
-            }
-
-            // Validate Goals
-            var invalidGoals = matches.Where(m => m.GoalsA < 0 || m.GoalsB < 0).ToList();
-            if (invalidGoals.Any())
-                return BadRequest(new { message = "Invalid goal counts detected" });
-
-            var entities = matches.Select(dto => new HistoricalMatch
-            {
-                Date = dto.Date,
-                GoalsA = dto.GoalsA,
-                GoalsB = dto.GoalsB,
-                Competition = dto.Competition,
-                Stage = dto.Stage,
-                TeamAId = dto.TeamAId,
-                TeamBId = dto.TeamBId
-            }).ToList();
-
-            await _historicalMatchRepository.InsertListAsync(entities);
-
-            return Ok(new { message = $"{entities.Count} historical matches inserted successfully." });
-        }
-
+                
         [HttpPost("finals-matches")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
