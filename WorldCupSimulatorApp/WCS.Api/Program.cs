@@ -13,6 +13,22 @@ using WCS.Infrastructure.Repositories.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddOpenApi();
+builder.Services.AddSwaggerGen();
+
+var Policy = "AllowFrontend";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: Policy,
+    policy =>
+    {
+        policy
+            .WithOrigins($"{builder.Configuration["FrontendUrl:Url"]}")
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -22,9 +38,6 @@ builder.Services.AddRateLimiter(options =>
         opt.Window = TimeSpan.FromMinutes(1);
     });
 });
-
-builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<EFCoreDbContext>(options =>
 {
@@ -46,6 +59,7 @@ builder.Services.AddScoped<IWorldCupFinalsRepository, WorldCupFinalsRepository>(
 builder.Services.AddScoped<IGroupStageService, GroupStageService>();
 builder.Services.AddScoped<IKnockoutsService, KnockoutsService>();
 builder.Services.AddHostedService<InitialRatingsCalculationService>();
+builder.Services.AddScoped<IBracketThirdPlaceService, BracketThirdPlaceService>();
 
 var app = builder.Build();
 
@@ -55,6 +69,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors(Policy);
 
 app.UseHttpsRedirection();
 

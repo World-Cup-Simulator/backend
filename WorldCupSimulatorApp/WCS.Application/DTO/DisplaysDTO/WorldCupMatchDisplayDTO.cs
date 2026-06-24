@@ -13,5 +13,6 @@
         public string? TeamBCode { get; set; }
         public int? GoalsA { get; set; }
         public int? GoalsB { get; set; }
+        public bool Played { get; set; }
     }
 }
